@@ -1,0 +1,43 @@
+# affects batch nodes (started on current machine)
+client.*:   # node name (RegEx)
+  trainer:  # role instance name
+    class: gossip_learning.roles.trainer.MyEpochTrainer
+    impl:
+      model:
+        class: gossip_learning.workload.lenet_5.MyLeNet5RGBModel
+        constructor_args:
+          lr: 0.01
+          device: cpu
+          num_threads: 2
+      dataset:
+        constructor_args:
+          dataset:
+            type: gossip_learning.workload.cifar_10.MyCiFar10SlicedDataset
+            options:
+              root: /home/roleml/datasets/cifar-10/sliced
+              index: $[0-9]
+          converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
+          sampler: sequential
+          batch_size: 32
+          combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
+      dataset_test:
+        constructor_args:
+          dataset:
+            type: gossip_learning.workload.cifar_10.MyCiFar10Dataset
+            options:
+              root: /home/roleml/datasets/cifar-10
+              part: test
+          converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
+          sampler: sequential
+          combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
+        construct_strategy: ONCE_EAGER
+  aggregator:
+    class: gossip_learning.roles.aggregator.GossipAggregator
+    impl:
+      buffer:
+        class: roleml.library.workload.util.collections.merger.torch.TorchStateDictCumulator
+  coordinator:
+    class: gossip_learning.roles.coordinator.GLCoordinator
+    impl:
+      merge-op:
+        impl: gossip_learning.workload.ops.drop_local

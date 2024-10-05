@@ -1,0 +1,37 @@
+name: client1
+address: 'roleml-01.local:5000'
+# procedure_invoker: roleml.extensions.messaging.default.separate.DefaultProcedureInvoker
+# procedure_provider: roleml.extensions.messaging.default.separate.DefaultProcedureProvider
+messaging_component: roleml.extensions.messaging.default.comb.DefaultMessagingComponent
+collective_implementor: roleml.core.actor.group.impl.threaded.ThreadedCollectiveImplementor
+contacts:
+  conductor: 192.168.2.3:4000
+  server: 192.168.2.3:5000
+relationships:
+  manager: conductor/conductor
+log_file_path: logs/$time
+log_console_type: single
+debug: true
+roles:
+  trainer:
+    class: federated_learning.roles.trainer.MyEpochTrainer
+    impl:
+      model:
+        class: federated_learning.workload.lenet_5.MyLeNet5RGBModel
+        constructor_args:
+          lr: 0.01
+          device: cpu
+          num_threads: 4
+        construct_strategy: once_eager
+      dataset:
+        constructor_args:
+          dataset:
+            type: federated_learning.workload.cifar_10.MyCiFar10SlicedDataset
+            options:
+              root: /home/roleml/datasets/cifar-10/sliced
+              index: 0
+          converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
+          sampler: sequential
+          batch_size: 32
+          combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
+        construct_strategy: once_eager

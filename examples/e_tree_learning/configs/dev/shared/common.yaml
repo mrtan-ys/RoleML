@@ -1,0 +1,12 @@
+# affects batch nodes (started on current machine)
+procedure_invoker: roleml.extensions.messaging.default.separate.DefaultProcedureInvoker
+procedure_provider: roleml.extensions.messaging.default.separate.DefaultProcedureProvider
+# messaging_component: roleml.extensions.messaging.default.comb.DefaultMessagingComponent
+collective_implementor: roleml.core.actor.group.impl.threaded.ThreadedCollectiveImplementor
+contacts:
+  conductor: 127.0.0.1:4000
+relationships:
+  manager: conductor/conductor
+log_file_path: logs/$time
+log_console_type: shared
+debug: true

@@ -1,0 +1,12 @@
+profiles:
+# Batch of nodes that will be started at the current machine
+  - name: client2
+    address: 127.0.0.1:5002
+  - name: client3
+    address: 127.0.0.1:5003
+
+profiles_separate:
+# Nodes that will be started in other places (e.g. real edge devices)
+# and receive topology info from Conductor
+  - name: client1
+    address: 127.0.0.1:5001

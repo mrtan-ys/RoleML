@@ -1,0 +1,4 @@
+<<: !include ./topo/default.yaml
+profiles: !include ./nodes/rpi-multi.yaml profiles
+profiles_individual: !include ./nodes/rpi-multi.yaml profiles_individual
+roles: !include ./roles/fedavg.yaml

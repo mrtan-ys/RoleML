@@ -1,0 +1,47 @@
+# affects batch nodes (started on current machine)
+client.*:
+  trainer:
+    class: federated_learning.roles.trainer.MyEpochTrainer
+    impl:
+      model:
+        class: federated_learning.workload.lenet_5.MyLeNet5RGBModel
+        constructor_args:
+          lr: 0.01
+          device: cpu
+          num_threads: 4
+      dataset:
+        constructor_args:
+          dataset:
+            type: federated_learning.workload.cifar_10.MyCiFar10SlicedDataset
+            options:
+              root: /home/roleml/datasets/cifar-10/sliced
+              index: $[4-20]
+          converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
+          sampler: sequential
+          batch_size: 32
+          combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
+server:
+  aggregator:
+    class: federated_learning.roles.fedavg.aggregator.CollectiveAggregator
+    impl:
+      merger:
+        class: roleml.library.workload.util.collections.merger.torch.TorchStateDictAverager
+  coordinator:
+    class: federated_learning.roles.coordinator.FLCoordinator
+    impl:
+      model:
+        class: federated_learning.workload.lenet_5.MyLeNet5RGBModel
+      dataset:
+        constructor_args:
+          dataset:
+            type: federated_learning.workload.cifar_10.MyCiFar10Dataset
+            options:
+              root: /home/roleml/datasets/cifar-10
+              part: test
+          converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
+          sampler: sequential
+          combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
+  client-selector:
+    class: federated_learning.roles.client_selector.ClientSelector
+  configurator:
+    class: federated_learning.roles.fedavg.configurator.ClientConfigurator

@@ -1,0 +1,47 @@
+client.*:
+  trainer: # role instance name
+    class: ad_psgd.roles.trainer.MyEpochTrainer
+    impl:
+      model:
+        class: ad_psgd.workload.lenet_5.MyLeNet5RGBModel
+        constructor_args:
+          lr: 0.01
+          device: cpu
+          num_threads: 4
+      dataset:
+        constructor_args:
+          dataset:
+            type: ad_psgd.workload.cifar_10.MyCiFar10SlicedDataset
+            options:
+              root: /home/roleml/datasets/cifar-10/sliced
+              index: $[0-9]
+          converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
+          sampler: sequential
+          batch_size: 32
+          combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
+      dataset_test:
+        constructor_args:
+          dataset:
+            type: ad_psgd.workload.cifar_10.MyCiFar10Dataset
+            options:
+              root: /home/roleml/datasets/cifar-10
+              part: test
+          converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
+          sampler: sequential
+          combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
+        construct_strategy: ONCE_EAGER
+
+client(1|2|3|4|5):
+  aggregator:
+    class: ad_psgd.roles.active_aggregator.AdAggregator
+  coordinator:
+    class: ad_psgd.roles.active_coordinator.AdCoordinator
+
+client(6|7|8|9|10):
+  aggregator:
+    class: ad_psgd.roles.passive_aggregator.AdAggregator
+    impl:
+      merge-op:
+        impl: ad_psgd.workload.ops.drop_local
+  coordinator:
+    class: ad_psgd.roles.passive_coordinator_v2.AdCoordinator

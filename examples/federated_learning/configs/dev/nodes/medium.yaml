@@ -1,0 +1,23 @@
+profiles:
+  - name: server
+    address: 127.0.0.1:5000
+  - name: client1
+    address: 127.0.0.1:5001
+  - name: client2
+    address: 127.0.0.1:5002
+  - name: client3
+    address: 127.0.0.1:5003
+  - name: client4
+    address: 127.0.0.1:5004
+  - name: client5
+    address: 127.0.0.1:5005
+  - name: client6
+    address: 127.0.0.1:5006
+  - name: client7
+    address: 127.0.0.1:5007
+  - name: client8
+    address: 127.0.0.1:5008
+  - name: client9
+    address: 127.0.0.1:5009
+  - name: client10
+    address: 127.0.0.1:5010

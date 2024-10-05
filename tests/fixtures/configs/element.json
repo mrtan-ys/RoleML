@@ -1,0 +1,15 @@
+{
+  "name": "Test",
+  "address": "0.0.0.0",
+  "procedure_invoker": "roleml.core.messaging.null.ProcedureInvokerDisabled",
+  "procedure_provider": "roleml.core.messaging.null.ProcedureProviderDisabled",
+  "collective_implementor": "roleml.core.actor.group.impl.null.CollectiveImplementorDisabled",
+  "roles": {
+    "data-holder": {
+      "class": "tests.fixtures.roles.features.element.DataHolder"
+    },
+    "data-fetcher": {
+      "class": "tests.fixtures.roles.features.element.DataFetcher"
+    }
+  }
+}

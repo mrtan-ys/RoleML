@@ -1,0 +1,7 @@
+profiles:
+  - name: client1
+    address: 10.184.102.225:5000
+  - name: client2
+    address: 10.184.102.104:5000
+  - name: client3
+    address: 10.184.102.125:5000

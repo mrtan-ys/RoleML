@@ -1,0 +1,4 @@
+# To run the examples, the following packages are needed:
+torch
+torchvision
+numpy

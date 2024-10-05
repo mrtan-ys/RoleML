@@ -1,0 +1,3 @@
+<<: !include ./topo/default.yaml
+profiles: !include ./nodes/small.yaml profiles
+roles: !include ./roles/fedavg.yaml

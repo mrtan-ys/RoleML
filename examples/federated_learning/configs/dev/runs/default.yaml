@@ -1,0 +1,3 @@
+fl_config:
+  num_rounds: 10
+  select_ratio: 0.5

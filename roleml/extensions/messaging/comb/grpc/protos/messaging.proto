@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+message Request {
+    string source = 1;
+    string procedure = 2;
+    bytes tags = 3;
+    bytes args = 4;
+    bytes payloads = 5;
+}
+
+message Response {
+    bytes content = 1;
+}
+
+message Handshake {
+    string name = 1;
+    string address = 2;
+}
+
+message Handwave {
+    string name = 1;
+}
+
+service RoleMLMessaging {
+    rpc invoke_procedure (Request) returns (Response);
+    rpc handshake (Handshake) returns (Response);
+    rpc handwave (Handwave) returns (Response);
+}

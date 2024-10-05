@@ -1,0 +1,21 @@
+{
+  "name": "Test",
+  "address": "0.0.0.0",
+  "procedure_invoker": "roleml.core.messaging.null.ProcedureInvokerDisabled",
+  "procedure_provider": "roleml.core.messaging.null.ProcedureProviderDisabled",
+  "collective_implementor": "roleml.core.actor.group.impl.null.CollectiveImplementorDisabled",
+  "roles": {
+    "jerry": {
+      "class": "tests.fixtures.roles.basic.CarShop",
+      "options": {},
+      "impl": {}
+    },
+    "tom": {
+      "class": "tests.fixtures.roles.basic.CarOwner"
+    }
+  },
+  "relationships": {
+    "shop": ["/jerry"],
+    "owner": ["/tom"]
+  }
+}

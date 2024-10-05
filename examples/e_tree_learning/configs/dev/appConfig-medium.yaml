@@ -1,0 +1,3 @@
+<<: !include ./topo/medium.yaml
+profiles: !include ./nodes/medium.yaml profiles
+roles: !include ./roles/medium.yaml

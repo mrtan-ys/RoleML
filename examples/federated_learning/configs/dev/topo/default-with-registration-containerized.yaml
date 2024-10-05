@@ -1,0 +1,20 @@
+# to simplify, we assume the server knows all clients, so handshake is not necessary
+connection_rules:
+  - server client.*
+  - client.* server
+
+relationship_rules:
+  server:
+    manager: server/initiator   # allows updating relationships
+    client-selector: server
+    aggregator: server
+    configurator: server
+    coordinator: server
+  client.*:
+    server: server/initiator
+  conductor:
+    coordinator: server   # equivalent to server/coordinator
+
+relationship_links:
+  server:
+    client: trainer

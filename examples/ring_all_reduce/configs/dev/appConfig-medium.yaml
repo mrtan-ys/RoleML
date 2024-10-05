@@ -1,0 +1,7 @@
+<<: !include ./topo/medium.yaml
+profiles: !include ./nodes/medium.yaml profiles
+roles: !include ./roles/default.yaml
+deployment_order:
+  - client[1-9]
+  - client10
+  - global

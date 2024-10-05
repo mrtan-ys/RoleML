@@ -1,0 +1,13 @@
+connection_rules:
+  - server client.*
+  - client.* server
+
+relationship_rules:
+  server:
+    trainer: client.*/trainer
+  conductor:
+    coordinator: server   # equivalent to server/coordinator
+
+relationship_links:
+  server:
+    client: trainer

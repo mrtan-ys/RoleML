@@ -1,0 +1,5 @@
+<<: !include ./topo/default-with-registration.yaml
+profiles: !include ./nodes/medium.yaml profiles
+roles: !include ./roles/fedavg-v2-with-registration.yaml
+deployment_order:
+  - server  # we only need to declare that the server must be deployed first

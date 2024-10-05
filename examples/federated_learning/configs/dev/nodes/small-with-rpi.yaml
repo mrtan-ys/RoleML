@@ -1,0 +1,19 @@
+profiles:
+# Batch of nodes that will be started at the current machine
+  - name: server
+    address: 192.168.2.3:5000
+  - name: client4
+    address: 192.168.2.3:5004
+  - name: client5
+    address: 192.168.2.3:5005
+  - name: client6
+    address: 192.168.2.3:5006
+
+profiles_individual:
+# Nodes that will be started in other places (e.g. real edge devices)
+  - name: client1
+    address: 'roleml-01.local:5000'
+  - name: client2
+    address: 'roleml-02.local:5000'
+  - name: client3
+    address: 'roleml-03.local:5000'

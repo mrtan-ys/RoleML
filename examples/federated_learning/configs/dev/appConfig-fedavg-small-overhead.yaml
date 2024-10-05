@@ -1,0 +1,4 @@
+<<: !include ./topo/default.yaml
+profiles: !include ./nodes/small-overhead.yaml profiles
+profiles_individual: !include ./nodes/small-overhead.yaml profiles_individual
+roles: !include ./roles/fedavg.yaml

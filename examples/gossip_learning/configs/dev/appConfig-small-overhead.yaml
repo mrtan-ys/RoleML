@@ -1,0 +1,7 @@
+<<: !include ./topo/small-overhead.yaml
+profiles: !include ./nodes/small-overhead.yaml profiles
+profiles_separate: !include ./nodes/small-overhead.yaml profiles_separate
+# You can replace the two lines above by the following line,
+# but your validator may report a duplicate key error
+# <<: !include ./nodes/small-overhead.yaml
+roles: !include ./roles/default.yaml

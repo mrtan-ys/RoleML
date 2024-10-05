@@ -1,0 +1,23 @@
+connection_rules:
+  - client1 client(2|4)
+  - client2 client(1|5|6)
+  - client3 client(4|5|6)
+  - client4 client(1|3)
+  - client5 client(2|3)
+  - client6 client(2|3)
+
+relationship_rules:
+  client1:
+    peer: client(2|4)/aggregator    # node-name/role-instance-name (if instance name not provided, relationship name is used)
+  client2:
+    peer: client(1|5|6)/aggregator
+  client3:
+    peer: client(4|5|6)/aggregator
+  client4:
+    peer: client(1|3)/aggregator
+  client5:
+    peer: client(2|3)/aggregator
+  client6:
+    peer: client(2|3)/aggregator
+  conductor:
+    coordinator: client(1|2|3|4|5|6)/coordinator

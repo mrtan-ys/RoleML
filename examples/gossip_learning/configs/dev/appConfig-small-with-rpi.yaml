@@ -1,0 +1,7 @@
+<<: !include ./topo/small.yaml
+profiles: !include ./nodes/small-with-rpi.yaml profiles
+profiles_individual: !include ./nodes/small-with-rpi.yaml profiles_individual
+# You can replace the two lines above by the following line,
+# but your validator may report a duplicate key error
+# <<: !include ./nodes/small-with-rpi.yaml
+roles: !include ./roles/default.yaml

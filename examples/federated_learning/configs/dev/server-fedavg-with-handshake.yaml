@@ -1,0 +1,54 @@
+name: server
+address: 127.0.0.1:5000
+# procedure_invoker: roleml.extensions.messaging.default.separate.DefaultProcedureInvoker
+# procedure_provider: roleml.extensions.messaging.default.separate.DefaultProcedureProvider
+messaging_component: roleml.extensions.messaging.default.comb.DefaultMessagingComponent
+collective_implementor: roleml.core.actor.group.impl.threaded.ThreadedCollectiveImplementor
+# no contact information, waiting for client handshakes
+relationships:
+  manager: server/initiator
+relationship_links:
+  client: trainer
+log_file_path: logs/$time
+log_console_type: single
+debug: true
+roles:
+  # for handling post-handshake (and call Coordinator for starting)
+  initiator:
+    class: federated_learning.roles.handshake.server.MyServerInitiator
+    options:
+      relationship_name: trainer
+      # Minimal clients to start a FL run
+      min_clients: 1
+      # Maximum number of seconds to wait for client join
+      # The FL run will start anyway if the number of clients is less than min_clients at timeout
+      max_seconds: 3600
+      # Number of global rounds
+      num_rounds: 10
+      # Number of clients to select per round
+      count: 1
+  # FL server roles
+  aggregator:
+    class: federated_learning.roles.fedavg.aggregator.CollectiveAggregator
+    impl:
+      merger:
+        class: roleml.library.workload.util.collections.merger.torch.TorchStateDictAverager
+  coordinator:
+    class: federated_learning.roles.coordinator.FLCoordinator
+    impl:
+      model:
+        class: federated_learning.workload.lenet_5.MyLeNet5RGBModel
+      dataset:
+        constructor_args:
+          dataset:
+            type: federated_learning.workload.cifar_10.MyCiFar10Dataset
+            options:
+              root: /home/roleml/datasets/cifar-10
+              part: test
+          converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
+          sampler: sequential
+          combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
+  client-selector:
+    class: federated_learning.roles.client_selector.ClientSelector
+  configurator:
+    class: federated_learning.roles.fedavg.configurator.ClientConfigurator

@@ -1,0 +1,20 @@
+connection_rules:
+  - client1 client(2|3)
+  - client2 client(1|3)
+  - client3 client(1|2)
+
+relationship_rules:
+  client1:
+    peer: client2/aggregator
+    aggregator: client1
+    trainer: client1
+  client2:
+    peer: client3/aggregator
+    aggregator: client2
+    trainer: client2
+  client3:
+    peer: client1/aggregator
+    aggregator: client3
+    trainer: client3
+  conductor:
+    coordinator: client(1|2|3)/coordinator

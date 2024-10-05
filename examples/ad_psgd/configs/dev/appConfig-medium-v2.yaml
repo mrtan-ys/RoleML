@@ -1,0 +1,5 @@
+<<: !include ./topo/medium-v2.yaml
+profiles: !include ./nodes/medium.yaml profiles
+roles: !include ./roles/default-v2.yaml
+deployment_order:
+  - client[1-5]

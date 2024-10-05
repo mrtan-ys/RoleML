@@ -1,0 +1,40 @@
+[build-system]
+requires = ['setuptools >= 61.0']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'roleml'
+dynamic = ['version']
+requires-python = '>=3.9, <4'
+dependencies = [
+    'schema',                       # for config format validation
+    'fasteners >= 0.19',            # for concurrent access (reader-writer lock)
+    'PyYAML',                       # for YAML config support
+    # dependencies for development
+    'typing_extensions >= 4.4.0',   # for @override, generic TypedDict (and Required/NotRequired) and NamedTuple
+]
+readme = 'README.md'
+classifiers = [
+    'Development Status :: 3 - Alpha',
+    'Intended Audience :: Developers',
+    'Intended Audience :: Science/Research',
+    'Topic :: System :: Distributed Computing',
+    'Topic :: Scientific/Engineering :: Artificial Intelligence'
+]
+# using automatic package discovery
+
+[project.optional-dependencies]
+# example usage: pip install roleml[profiling]
+profiling = ['viztracer']
+http = [
+    'flask',                        # for HTTP server
+    'werkzeug',                     # for HTTP server
+    'charset-normalizer >= 3',      # for bugfix purpose; package itself required by other packages
+    'requests',                     # for HTTP client
+]
+grpc = ['grpcio', 'grpcio-tools']
+containerization = ['psutil', 'docker']
+# TODO default extras in the future? (https://discuss.python.org/t/adding-a-default-extra-require-environment/4898)
+
+[tool.setuptools.dynamic]
+version = {attr = 'roleml.__version__'}
