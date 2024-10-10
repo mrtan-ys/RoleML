@@ -47,7 +47,7 @@ client(1|2|3|4|5|6|7|8|9|10):
             type: e_tree_learning.workload.cifar_10.MyCiFar10SlicedDataset
             options:
               root: /home/roleml/datasets/cifar-10/sliced
-              index: $[4-20]
+              index: $c[4-20]
           converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
           sampler: sequential
           batch_size: 32

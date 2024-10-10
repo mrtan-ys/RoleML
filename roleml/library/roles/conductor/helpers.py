@@ -22,7 +22,7 @@ def detect_templates(item, save: dict[tuple, Iterator], path: tuple = ()):
 
 
 def _is_template(value: Any):
-    return bool(re.match('^[@^~$]\\[(.*)]$', str(value)))
+    return bool(re.match('^\\$[race]\\[(.*)]$', str(value)))
 
 
 class RandomSingleValueProducer:
@@ -61,29 +61,32 @@ def make_random_producer(begin: SupportsIndex, end: SupportsIndex, step: Support
 
 
 def _build_template_value_producer(template: str) -> Iterator:
-    args = [arg.strip() for arg in template[2:-1].split(',')]
+    assert _is_template(template)
+    args = [arg.strip() for arg in template[3:-1].split(',')]
+    template_type = template[1]
     try:
-        if template[0] == '@':
-            # @[4-11] all in 4-11, include both ends, used as a whole and repeat on every generation
+        if template_type == 'a':
+            # $a[4-11] all in 4-11, include both ends, used as a whole and repeat on every generation
             values = set()
             for arg in args:
                 values.update(_collect_range_values(arg))
             return repeat(values)
-        elif template[0] == '^':
-            # ^[4, 11] random in 4-11, include both ends, return val
-            # ^[4, 22, 1] random in 4-22, sampling step 1, include both ends, return val
-            # ^[4, 99, 1, 10] random in 4-99, sampling step 1, include both ends, select 10, return list
+        elif template_type == 'r':
+            # $r[4, 11] random in 4-11, include both ends, return val
+            # $r[4, 22, 1] random in 4-22, sampling step 1, include both ends, return val
+            # $r[4, 99, 1, 10] random in 4-99, sampling step 1, include both ends, select 10, return list
             args = [int(arg) for arg in args]
             return make_random_producer(*args)
-        elif template[0] == '~':
-            # ~[1-100, 4-11] all in 1-100, exclude all in 4-11, include both ends, more args can be added for exclusion
+        elif template_type == 'e':
+            # $e[1-100, 4-11] all in 1-100, exclude all in 4-11, include both ends, more args can be added for exclusion
             #  produce next value on every generation (cycle)
             values = set(_collect_range_values(args[0]))
             for arg in args[1:]:
                 values.difference_update(_collect_range_values(arg))
             return cycle(values)
         else:
-            # $[1-10] all in 1-10, include both ends, produce next value on every generation (cycle)
+            assert template_type == 'c'
+            # $c[1-10] all in 1-10, include both ends, produce next value on every generation (cycle)
             values = set()
             for arg in args:
                 values.update(_collect_range_values(arg))

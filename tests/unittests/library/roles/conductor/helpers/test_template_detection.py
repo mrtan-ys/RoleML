@@ -8,10 +8,10 @@ class TemplateDetectionTestCase(unittest.TestCase):
     def test_path_detection(self):
         config = {
             'a': 'b',
-            'c': [1, 2, '$[1-10]'],
+            'c': [1, 2, '$c[1-10]'],
             'd': {
                 'e': 'f',
-                'g': '@[4-22]',
+                'g': '$a[4-22]',
             },
         }
         producers = {}
@@ -21,8 +21,8 @@ class TemplateDetectionTestCase(unittest.TestCase):
 
     def test_template_application(self):
         original_config = {
-            'a': '$[1-10]',
-            'b': ['c', '$[11-20]']
+            'a': '$c[1-10]',
+            'b': ['c', '$c[11-20]']
         }
         expected_range_a = iter(range(1, 10 + 1))
         expected_range_b = iter(range(11, 20 + 1))

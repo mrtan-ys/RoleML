@@ -19,7 +19,7 @@
     * Configuration format for contacts is changed.
     * Automatic schema validation is introduced for Conductor configuration files (`appConfig`).
     * The Conductor now takes a single node as the deployment unit. Meanwhile, a new configuration property `deployment_order` is introduced to allow specifying which nodes should accept deployment first.
-    * The formats for creating templates in an `appConfig` file is modified to avoid conflict with YAML anchors.
+    * The format of templates in an `appConfig` file is modified.
     * The actor running the Conductor role will now stop gracefully when reading an EOF from the standard input.
 * Shortcut modules are added to allow one-line import of most common APIs.
 * A new feature, element preset, is introduced to allow pre-configuration of the elements to load for specific roles.

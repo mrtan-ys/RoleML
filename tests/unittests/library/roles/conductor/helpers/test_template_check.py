@@ -6,7 +6,7 @@ from roleml.library.roles.conductor.helpers import _is_template     # noqa: in u
 class TemplateCheckTestCase(unittest.TestCase):
 
     def test_correct_template_detection(self):
-        templates = '@[4-11]', '^[4, 11]', '^[4, 11, 2]', '^[4, 11, 2, 3]', '~[1-100, 4-11]', '$[4-11]'
+        templates = '$a[4-11]', '$r[4, 11]', '$r[4, 11, 2]', '$r[4, 11, 2, 3]', '$e[1-100, 4-11]', '$c[4-11]'
         for template in templates:
             self.assertTrue(_is_template(template))
 

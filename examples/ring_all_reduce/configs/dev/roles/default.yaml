@@ -15,7 +15,7 @@ client.*:   # node name (RegEx)
             type: ring_all_reduce.workload.cifar_10.MyCiFar10SlicedDataset
             options:
               root: /home/roleml/datasets/cifar-10/sliced
-              index: $[0-9]
+              index: $c[0-9]
           converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
           sampler: sequential
           batch_size: 32
