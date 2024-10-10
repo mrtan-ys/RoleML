@@ -7,7 +7,7 @@ RoleML is designed to be compatible with Python 3.9 or above. We recommend to in
 For efficient conduction of experiments, we recommend making an editable installation of RoleML:
 
 1. Clone the repository and **`cd`** to the root of the repository.
-2. Install RoleML with **`pip install -e .[grpc, profiling, containerization]`**. This will install RoleML and dependencies for the gRPC communication backend, profiling and containerization in the current environment.
+2. Install RoleML with **`pip install -e .[grpc,profiling,containerization]`**. This will install RoleML and dependencies for the gRPC communication backend, profiling and containerization in the current environment.
 
 We will use _**`<root>`**_ to represent the root directory of the repository.
 
