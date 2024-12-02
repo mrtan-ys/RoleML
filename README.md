@@ -9,7 +9,7 @@ RoleML is introduced as a novel, general-purpose **role-oriented programming mod
 You can install RoleML via pip:
 
 ```shell
-pip install roleml[starter]
+pip install roleml-ai[starter]
 ```
 
 The `[starter]` extra is recommended for beginners. This will include dependencies for the gRPC communication backend, as well as a profiling tool `viztracer` for performance analysis.
@@ -33,7 +33,7 @@ For a minimal installation (without communication backend dependencies):
 
 ```shell
 # PyPI installation
-pip install roleml
+pip install roleml-ai
 # editable installation
 pip install -e path/to/roleml/source/directory
 ```
