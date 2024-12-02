@@ -1,6 +1,6 @@
 # General Preparation
 
-RoleML is designed to be compatible with Python 3.9 or above. We recommend to install RoleML and all required packages in a separate environment.
+RoleML is designed to be compatible with Python 3.9 or above, but containerization-based experiments require Python 3.11 or higher. We recommend to install RoleML and all required packages in a separate environment.
 
 ## RoleML Package
 
