@@ -1,4 +1,4 @@
-__version__ = '0.3.0rc7'
+__version__ = '0.3.0'
 
 LOG_LEVEL_INTERNAL = 5
 """ This level should only be used when customizing RoleML. """
