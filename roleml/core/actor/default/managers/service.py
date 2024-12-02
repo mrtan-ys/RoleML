@@ -60,10 +60,13 @@ class ServiceManager(BaseServiceManager, ChannelCallManagerMixin):
             raise InvocationRefusedError(str(e))
         # other exceptions will just raise and converted into procedure provider error
 
+    def _is_local_instance(self, instance_name: RoleInstanceID) -> bool:
+        return instance_name.actor_name == self.context.profile.name
+
     def call(self, instance_name: str, target: RoleInstanceID, channel_name: str,
              message: Union[Message, PayloadsPickledMessage]) -> Any:
         self.logger.debug(f'calling service on {target}/{channel_name} from {instance_name}, args = {message.args}')
-        if target.actor_name == self.context.profile.name:
+        if self._is_local_instance(target):
             return self._call_local(instance_name, target.instance_name, channel_name, message)
         else:
             return self._call_remote(instance_name, target, channel_name, message)

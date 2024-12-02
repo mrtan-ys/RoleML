@@ -8,7 +8,7 @@ from roleml.core.actor.default.managers.event import (
     EventManager as DefaultEventManager,
 )
 from roleml.core.context import RoleInstanceID
-from roleml.core.messaging.types import Args, Payloads, Tags, MyPayloads
+from roleml.core.messaging.types import Args, Payloads, Tags
 from roleml.core.status import ExecutionTicket
 from roleml.extensions.containerization.controller.managers.mixin import ContainerInvocationMixin
 from roleml.shared.aop import aspect
@@ -32,7 +32,7 @@ class EventManager(DefaultEventManager, ContainerInvocationMixin):
         if not self._is_role_containerized(subscriber_instance_name):
             super()._on_receive_event_discontinuing_message(sender, tags, _, __)
         else:
-            ticket = self._acquire_execution(subscriber_instance_name)
+            ticket = self._acquire_execution(subscriber_instance_name, timeout=None)
             self.thread_manager.add_threaded_task(
                 self._forward_discontinuing_message_to_container,
                 (sender, instance_name, subscriber_instance_name, ticket),
@@ -69,7 +69,7 @@ class EventManager(DefaultEventManager, ContainerInvocationMixin):
         if not self._is_role_containerized(target_subscriber_instance_name):
             super()._on_receive_event_message(sender, tags, args, payloads)
         else:
-            ticket = self._acquire_execution(target_subscriber_instance_name)
+            ticket = self._acquire_execution(target_subscriber_instance_name, timeout=None)
             self.thread_manager.add_threaded_task(
                 self._forward_event_message_to_container,
                 (sender, tags, args, payloads, ticket),
@@ -155,13 +155,19 @@ class EventManager(DefaultEventManager, ContainerInvocationMixin):
         self, instance_id: RoleInstanceID, new_instance_id: RoleInstanceID
     ):
         with self.event_lock.write_lock():
+            # shallow copy, avoid modifying the original dict while other thread is iterating
+            self.events = self.events.copy()
             for event_channels in self.events.values():
                 for event_info in event_channels.values():
                     if instance_id in event_info.remote_subscribers:
+                        # shallow copy
+                        event_info.remote_subscribers = event_info.remote_subscribers.copy()
                         sub_info = event_info.remote_subscribers.pop(instance_id)
                         event_info.remote_subscribers[new_instance_id] = sub_info
 
         with self.subscription_lock.write_lock():
+            # shallow copy
+            self.subscriptions_by_source_channel = self.subscriptions_by_source_channel.copy()
             if instance_id in self.subscriptions_by_source_channel:
                 sub_info = self.subscriptions_by_source_channel.pop(instance_id)
                 self.subscriptions_by_source_channel[new_instance_id] = sub_info

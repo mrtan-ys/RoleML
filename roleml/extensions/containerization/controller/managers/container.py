@@ -3,10 +3,6 @@ import ipaddress
 import logging
 from pathlib import Path
 import time
-from typing import (
-    Generator,
-    Literal,
-)
 from typing_extensions import override
 
 import docker
@@ -14,20 +10,27 @@ import docker.models
 import docker.models.containers
 import requests
 
-from roleml.core.actor.default.managers.channels import ChannelCallManagerMixin
 from roleml.core.actor.manager import BaseManager
 from roleml.core.builders.role import RoleConfig, RoleSpec
 from roleml.core.context import ActorProfile
-from roleml.core.messaging.types import Args, Payloads, Tags
 from roleml.core.role.base import Role
-from roleml.core.role.exceptions import NoSuchRoleError
 from roleml.core.status import Status
 
 from roleml.extensions.containerization.builders.spec import ContainerizationConfig
-from roleml.extensions.containerization.controller.helpers.docker import DockerService
-from roleml.extensions.containerization.controller.managers.mixin import ContainerInvocationMixin
+from roleml.extensions.containerization.controller.helpers.container_engine.docker import (
+    DockerEngine,
+)
+from roleml.extensions.containerization.controller.helpers.container_engine.interface import (
+    NoSuchContainerError,
+)
+from roleml.extensions.containerization.controller.managers.mixin import (
+    ContainerInvocationMixin,
+)
 from roleml.extensions.containerization.controller.role import ContainerizedRole
-from roleml.extensions.containerization.runtime.managers.status import STATUS_RESUME_CHANNEL, STATUS_PAUSE_CHANNEL
+from roleml.extensions.containerization.runtime.managers.status import (
+    STATUS_RESUME_CHANNEL,
+    STATUS_PAUSE_CHANNEL,
+)
 
 
 CONTAINER_OFFLOAD_CHANNEL = "CONTAINER_OFFLOAD"
@@ -43,36 +46,50 @@ class ContainerManager(BaseManager, ContainerInvocationMixin):
     @override
     def initialize(self, containerization_config: ContainerizationConfig):
         super().initialize()
-        
+
         self._containerization_config = containerization_config
-        self._container_service = DockerService()
+        self._container_service = DockerEngine()
         self._instance_name_to_container_name: dict[str, str] = {}
-        self._instance_name_to_container_ip: dict[str, str] = {} # ip address in container network
-        
+        self._instance_name_to_container_ip: dict[str, str] = (
+            {}
+        )  # ip address in container network
+
         self.role_status_manager.add_callback(Status.STARTING, self._on_status_starting)
-        self.role_status_manager.add_callback(Status.FINALIZING, self._on_status_finalizing)
+        self.role_status_manager.add_callback(
+            Status.FINALIZING, self._on_status_finalizing
+        )
         self.role_status_manager.add_callback(Status.PAUSED, self._on_status_pausing)
-        self.role_status_manager.add_callback(Status.OFFLOADED, self._on_status_offloaded)
+        self.role_status_manager.add_callback(
+            Status.OFFLOADED, self._on_status_offloaded
+        )
         self.role_status_manager.add_callback(Status.RESUMING, self._on_status_resuming)
-        
-        self.logger = logging.getLogger('roleml.managers.container')
-        
+
+        self.logger = logging.getLogger("roleml.managers.container")
+
         self._profiling = False
         self._profiling_tracer_entries: int = 1000000
         self._profiling_save_path: str = ""
         try:
             from viztracer import get_tracer
+
             if tracer := get_tracer():
                 self._profiling = True
                 self._profiling_tracer_entries = tracer.tracer_entries
-                self._profiling_save_path = Path(tracer.output_file).parent.absolute().as_posix()
+                self._profiling_save_path = (
+                    Path(tracer.output_file).parent.absolute().as_posix()
+                )
         except ModuleNotFoundError:
             pass
 
     @property
-    def containers(self) -> Generator[tuple[str, docker.models.containers.Container], None, None]:
-        for instance_name, container_name in self._instance_name_to_container_name.items():
-            yield instance_name, self._container_service.get_container(container_name) # type: ignore
+    def containers(
+        self,
+    ):
+        for (
+            instance_name,
+            container_name,
+        ) in self._instance_name_to_container_name.items():
+            yield instance_name, self._container_service.get_container(container_name)  # type: ignore
 
     @property
     def containerized_roles(self) -> list[str]:
@@ -89,7 +106,7 @@ class ContainerManager(BaseManager, ContainerInvocationMixin):
         time.sleep(1)  # wait for the container server to start
         role_config = role.config
         self._setup_role_runtime(role.name, role_config)
-        self._add_container_to_contacts(role.name) # add contact for the role instance.
+        self._add_container_to_contacts(role.name)  # add contact for the role instance.
         self.logger.info(f"Role {role.name} added")
 
     def _add_container_to_contacts(self, instance_name: str):
@@ -97,14 +114,14 @@ class ContainerManager(BaseManager, ContainerInvocationMixin):
         # TODO others should not use this name.
         # TODO this is a temporary solution, should be replaced by a more elegant way.
         prof = ActorProfile(
-            f"{self.context.profile.name}_{instance_name}", 
-            f"{self._instance_name_to_container_ip[instance_name]}:{self.RUNTIME_MESSAGING_PORT_IN_CONTAINER}"
+            f"{self.context.profile.name}_{instance_name}",
+            f"{self._instance_name_to_container_ip[instance_name]}:{self.RUNTIME_MESSAGING_PORT_IN_CONTAINER}",
         )
         self.context.contacts.add_contact(prof)
 
     def get_container(self, instance_name: str) -> docker.models.containers.Container:
         container_name = self._instance_name_to_container_name[instance_name]
-        return self._container_service.get_container(container_name) # type: ignore
+        return self._container_service.get_container(container_name)  # type: ignore
 
     def checkpoint_container(self, instance_name: str, save_dir: Path) -> Path:
         ckpt_tar_path = self._container_service.checkpoint_container(
@@ -113,9 +130,8 @@ class ContainerManager(BaseManager, ContainerInvocationMixin):
             save_dir.absolute().as_posix(),
         )
         return Path(ckpt_tar_path)
-    
+
     def restore_container(self, instance_name: str, ckpt: Path):
-        # TODO https://github.com/checkpoint-restore/criu/issues/2453
         self._create_role_container(instance_name, use_run=True)
         self._container_service.restore_container(
             self._instance_name_to_container_name[instance_name],
@@ -123,7 +139,7 @@ class ContainerManager(BaseManager, ContainerInvocationMixin):
         )
         self._update_container_address(instance_name)
         self._add_container_to_contacts(instance_name)
-    
+
     def _on_status_starting(self, instance_name: str, old_status: Status):
         if not self._is_role_containerized(instance_name):
             return
@@ -131,49 +147,48 @@ class ContainerManager(BaseManager, ContainerInvocationMixin):
         self.logger.info(f"Run role {instance_name}")
         self._run_role(instance_name)
         self.logger.info(f"Role {instance_name} started")
-        
+
     def _on_status_resuming(self, instance_name: str, old_status: Status):
         if not self._is_role_containerized(instance_name):
             return
-        self._invoke_container(
-            instance_name, STATUS_RESUME_CHANNEL,
-            None, None, None
-        )
+        self._invoke_container(instance_name, STATUS_RESUME_CHANNEL, None, None, None)
 
     def _on_status_finalizing(self, instance_name: str, old_status: Status):
         if not self._is_role_containerized(instance_name):
             return
-        
+
         self.logger.info(f"Stop signal sent to {instance_name}")
         try:
             resp = requests.post(
                 f"http://{self._instance_name_to_container_ip[instance_name]}:{self.RUNTIME_SETUP_PORT_IN_CONTAINER}/stop",
-                json={"timeout": 20}, # TODO configurable timeout
+                json={"timeout": 20},  # TODO configurable timeout
             )
             if resp.status_code != 200:
                 try:
                     data = resp.json()
-                    self.logger.error(f"Error when stopping {instance_name}: {data['error']}")
+                    self.logger.error(
+                        f"Error when stopping {instance_name}: {data['error']}"
+                    )
                 except:
-                    self.logger.error(f"Error when stopping {instance_name}: {resp.text}")
+                    self.logger.error(
+                        f"Error when stopping {instance_name}: {resp.text}"
+                    )
+                # force stop
+                self.logger.info(f"Force stopping {instance_name}")
+                container = self._container_service.get_container(
+                    self._instance_name_to_container_name[instance_name]
+                )
+                container.stop()
         except requests.exceptions.ConnectionError:
             # container is already stopped
             pass
-        # self.logger.info(f"Removing container for role {instance_name}")
-        # container_name = self._instance_name_to_container_name[instance_name]
-        # container = self._container_service.get_container(container_name)
-        # assert container is not None
-        # container.stop()
         # container.remove()
         # self.logger.info(f"Container {container_name} removed")
 
     def _on_status_pausing(self, instance_name: str, old_status: Status):
         if not self._is_role_containerized(instance_name):
             return
-        self._invoke_container(
-            instance_name, STATUS_PAUSE_CHANNEL,
-            None, None, None
-        )
+        self._invoke_container(instance_name, STATUS_PAUSE_CHANNEL, None, None, None)
 
     def _on_status_offloaded(self, instance_name: str, old_status: Status):
         if not self._is_role_containerized(instance_name):
@@ -184,11 +199,14 @@ class ContainerManager(BaseManager, ContainerInvocationMixin):
 
     def _create_role_container(self, instance_name: str, use_run: bool = False):
         container_name = f"roleml_{self.context.profile.name}_{instance_name}"
-        if container := self._container_service.get_container(container_name):
+        try:
+            container = self._container_service.get_container(container_name)
             self.logger.info(f"Container {container_name} already exists. Removing...")
             container.stop()
             container.remove()
             self.logger.info(f"Container {container_name} removed")
+        except NoSuchContainerError:
+            pass
 
         self.logger.info(f"Building image {self.IMAGE_TAG}")
         self._build_image()
@@ -255,11 +273,13 @@ class ContainerManager(BaseManager, ContainerInvocationMixin):
         container = self._container_service.get_container(container_name)
         assert container is not None
         container.reload()
-        self._instance_name_to_container_ip[instance_name] = container.attrs["NetworkSettings"]["IPAddress"]
+        self._instance_name_to_container_ip[instance_name] = container.attrs[
+            "NetworkSettings"
+        ]["IPAddress"]
 
     def _convert_loopback_to_host(self, address: str):
         ip, port_str = address.split(":")
-        if ip == 'localhost' or ipaddress.ip_address(ip).is_loopback:
+        if ip == "localhost" or ipaddress.ip_address(ip).is_loopback:
             return f"host.docker.internal:{port_str}"
         return address
 
@@ -282,11 +302,11 @@ class ContainerManager(BaseManager, ContainerInvocationMixin):
             f"localhost:{self.RUNTIME_MESSAGING_PORT_IN_CONTAINER}"
         )
         runtime_actor_spec["contacts"] = {
-            "__node_controller": f"host.docker.internal:{self.context.profile.address.split(':')[1]}",
             **{
                 prof.name: self._convert_loopback_to_host(prof.address)
                 for prof in self.context.contacts.all_actors()
             },
+            self.context.profile.name: f"host.docker.internal:{self.context.profile.address.split(':')[1]}",
         }
         with self.context.relationships:
             runtime_actor_spec["relationship_links"] = {
@@ -294,7 +314,7 @@ class ContainerManager(BaseManager, ContainerInvocationMixin):
             }
             runtime_actor_spec["relationships"] = {
                 **{
-                    rel: [f'{inst.actor_name}/{inst.instance_name}' for inst in insts]
+                    rel: [f"{inst.actor_name}/{inst.instance_name}" for inst in insts]
                     for rel, insts in self.context.relationships.all_relationships().items()
                     # 忽略别名
                     if rel not in self.context.relationships._relationship_links
@@ -317,38 +337,49 @@ class ContainerManager(BaseManager, ContainerInvocationMixin):
             }
         runtime_actor_spec["workdir"] = "/app"
         runtime_actor_spec["src"] = "/app"
-        runtime_actor_spec["log_file_path"] = None # disable logging to file, logs will be sent to the LogManager
+        runtime_actor_spec["log_file_path"] = (
+            None  # disable logging to file, logs will be sent to the LogManager
+        )
 
         resp = requests.post(
-            f"http://{self._instance_name_to_container_ip[instance_name]}:{self.RUNTIME_SETUP_PORT_IN_CONTAINER}/setup", 
-            json={"instance_name": instance_name, "config": runtime_actor_spec}
+            f"http://{self._instance_name_to_container_ip[instance_name]}:{self.RUNTIME_SETUP_PORT_IN_CONTAINER}/setup",
+            json={"instance_name": instance_name, "config": runtime_actor_spec},
         )
         if resp.status_code != 200:
             try:
                 data = resp.json()
-                self.logger.error(f"Error when setting up runtime for {instance_name}: {data['error']}")
+                self.logger.error(
+                    f"Error when setting up runtime for {instance_name}: {data['error']}"
+                )
             except:
-                self.logger.error(f"Error when setting up runtime for {instance_name}: {resp.text}")
+                self.logger.error(
+                    f"Error when setting up runtime for {instance_name}: {resp.text}"
+                )
         resp.raise_for_status()
-    
+
     def _run_role(self, instance_name: str):
         if not self._profiling:
             resp = requests.post(
-                f"http://{self._instance_name_to_container_ip[instance_name]}:{self.RUNTIME_SETUP_PORT_IN_CONTAINER}/run")
+                f"http://{self._instance_name_to_container_ip[instance_name]}:{self.RUNTIME_SETUP_PORT_IN_CONTAINER}/run"
+            )
         else:
             resp = requests.post(
                 f"http://{self._instance_name_to_container_ip[instance_name]}:{self.RUNTIME_SETUP_PORT_IN_CONTAINER}/run_with_profiling",
                 json={
-                    "save_path": "/profiling", 
+                    "save_path": "/profiling",
                     "tracer_entries": self._profiling_tracer_entries,
                 },
             )
         if resp.status_code != 200:
             try:
                 data = resp.json()
-                self.logger.error(f"Error when setting up runtime for {instance_name}: {data['error']}")
+                self.logger.error(
+                    f"Error when setting up runtime for {instance_name}: {data['error']}"
+                )
             except:
-                self.logger.error(f"Error when setting up runtime for {instance_name}: {resp.text}")
+                self.logger.error(
+                    f"Error when setting up runtime for {instance_name}: {resp.text}"
+                )
         resp.raise_for_status()
 
     def _build_image(self, force: bool = False):
@@ -369,7 +400,7 @@ class ContainerManager(BaseManager, ContainerInvocationMixin):
             self._containerization_config.project_root / "requirements.txt"
         ).exists()
         additional_python_paths = [
-            "/roleml", # for roleml package source, used when developing roleml
+            "/roleml",  # for roleml package source, used when developing roleml
         ]
         python_paths = [
             *additional_python_paths,

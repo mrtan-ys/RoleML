@@ -1,0 +1,18 @@
+connection_rules:
+  - client1 client(1|2|4|5)
+  - client2 client(1|6|7)
+  - client4 client1
+  - client5 client1
+  - client6 client2
+  - client7 client2
+
+relationship_rules:
+  client1:
+    source-1: client(1|2)/aggregator-0
+    source-0: client(1|4|5)/trainer
+    trainer: client(1|2|4|5|6|7)
+    root: client1/aggregator-1
+  client2:
+    source-0: client(2|6|7)/trainer
+  conductor:
+    coordinator: client1/coordinator

@@ -4,16 +4,17 @@ import re
 import subprocess
 import threading
 import time
-from typing import TypedDict, Generator
+from typing import TypedDict, Generator, TYPE_CHECKING
 from typing_extensions import override
 
-import docker
-import docker.errors
 import psutil
+
 from roleml.core.context import ActorNotFoundError
 from roleml.core.role.base import Role
 from roleml.shared.interfaces import Runnable
-import roleml.extensions.containerization.controller.impl as containerization_controller
+
+if TYPE_CHECKING:
+    import roleml.extensions.containerization.controller.impl as containerization_controller
 
 
 @dataclass
@@ -92,12 +93,15 @@ class ResourceProber(Role, Runnable):
                     self.call(
                         "monitor",
                         "update_stats",
-                        {"role_stats": role_stats, "host_stats": host_stats},
+                        args=None,
+                        payloads={"role_stats": role_stats, "host_stats": host_stats},
                     )
+                except ActorNotFoundError:
+                    self.logger.debug("Monitor not found, skipped stats update")
                 except Exception as e:
                     self.logger.exception(e)
             else:
-                self.logger.info("Monitor not found, skipped stats update")
+                self.logger.debug("Monitor not found, skipped stats update")
 
     def _stat_collection_loop(self):
         while not self._stop_collect_loop:
@@ -105,7 +109,7 @@ class ResourceProber(Role, Runnable):
             try:
                 self._collect_stats_to_buffer()
             except Exception as e:
-                self.logger.error(f"Error collecting stats: {e}")
+                self.logger.error(f"Error collecting stats: {type(e)} - {e}")
                 # 预期采集频率为1秒钟一次，
                 # 正常情况下每次采集角色数据都会被阻塞1秒钟，所以可以借助这个阻塞时间来控制采集频率。
                 # 这里的sleep是为了避免采集角色出现错误时，未按照预期中的阻塞1秒钟，导致采集频率过高。
@@ -176,6 +180,8 @@ class ResourceProber(Role, Runnable):
                     name=self.base.profile.name,
                 )
             )
+            if len(self._host_stats_buffer) > 100: # max buffer size
+                self._host_stats_buffer.pop(0)
 
     def _gather_roles_stats(self):
         """
@@ -195,17 +201,17 @@ class ResourceProber(Role, Runnable):
             generators[role_name] = self._docker_stats_generators.get(role_name)
             # 新的角色，需要新建一个generator
             if generators[role_name] is None:
-                generators[role_name] = role_container.stats(stream=True, decode=True)
+                generators[role_name] = role_container.get_stats_stream()
         self._docker_stats_generators = generators  # 把消失的角色的generator丢掉
 
         container_raw_statistics = {}  # raw stats collected from docker stats api
         for role_name, stats_generator in self._docker_stats_generators.items():
             try:
                 container_raw_statistics[role_name] = next(stats_generator)
-            except docker.errors.APIError as e:
-                self.logger.error(f"Error getting stats for role {role_name}: {e}")
-                continue
             except StopIteration:
+                continue
+            except Exception as e:
+                self.logger.error(f"Error getting stats for role {role_name}: {e}")
                 continue
 
         refined_stats: dict[str, ContainerStats] = {}

@@ -1,12 +1,15 @@
 from enum import Enum
 import threading
 import time
+
 from roleml.core.context import RoleInstanceID
 from roleml.core.role.base import Role
-from roleml.core.role.channels import EventHandler, HandlerDecorator, Service, Task
+from roleml.core.role.channels import EventHandler, HandlerDecorator, Task
+from roleml.core.role.types import Message
 
 
 class Migration:
+
     class Status(Enum):
         PENDING = 0
         # RECIEVED = 1
@@ -31,6 +34,7 @@ class Migration:
 
 
 class MigrationManager:
+
     def __init__(self):
         self.migrations: dict[RoleInstanceID, Migration] = {}
 
@@ -74,25 +78,6 @@ class OffloadingManager(Role):
         )
 
     def _offload_impl(self, src_node: str, role: str, dst_node: str):
-        self.call(
-            RoleInstanceID(src_node, "actor"),
-            "update-contacts",
-            {
-                "contacts": {
-                    dst_node: self.ctx.contacts.get_actor_profile(dst_node).address
-                }
-            },
-        )
-        self.call(
-            RoleInstanceID(dst_node, "actor"),
-            "update-contacts",
-            {
-                "contacts": {
-                    src_node: self.ctx.contacts.get_actor_profile(src_node).address
-                }
-            },
-        )
-
         if src_node == dst_node:
             raise ValueError("src and dst cannot be the same")
 
@@ -113,16 +98,46 @@ class OffloadingManager(Role):
 
     @Task("offload-roles", expand=True)
     def offload_roles(self, _, plan: dict[RoleInstanceID, str]):
-        self.start_time = time.time()
-        futures = []
+        self.logger.debug("syncing contacts between offloaders and offloadees")
+        to_sync: dict[str, list[str]] = {}
         for role, dst in plan.items():
-            self.current_migrating_roles.append(role)
-            f = self.base.thread_manager.add_threaded_task(
-                self._offload_impl, (role.actor_name, role.instance_name, dst)
-            )
-            futures.append(f)
-        for f in futures:
-            f.result()
+            src = role.actor_name
+            if src == dst:
+                raise ValueError("src and dst cannot be the same")
+            to_sync.setdefault(src, []).append(dst)
+            to_sync.setdefault(dst, []).append(src)
+        self.call_group(
+            [RoleInstanceID(src, "actor") for src in to_sync],
+            "update-contacts",
+            message_map={
+                RoleInstanceID(src, "actor"): Message(
+                    args={
+                        "contacts": {
+                            dst: self.ctx.contacts.get_actor_profile(dst).address
+                            for dst in dsts
+                        }
+                    }
+                )
+                for src, dsts in to_sync.items()
+            },
+        )
+
+        self.logger.debug("executing offload plan")
+        self.start_time = time.time()
+        # futures = []
+        # for role, dst in plan.items():
+        #     self.current_migrating_roles.append(role)
+        #     f = self.base.thread_manager.add_threaded_task(
+        #         self._offload_impl, (role.actor_name, role.instance_name, dst)
+        #     )
+        #     futures.append(f)
+        # for f in futures:
+        #     try:
+        #         f.result()
+        #     except Exception:
+        #         self.logger.error("failed to offload role")
+        for role, dst in plan.items():
+            self._offload_impl(role.actor_name, role.instance_name, dst)
 
     @HandlerDecorator(expand=True)
     def on_offload_started(
@@ -144,17 +159,11 @@ class OffloadingManager(Role):
         instance_name: str,
         destination_actor_name: str,
         destination_actor_address: str,
-        # timer: dict[str, float],
     ):
-        # m = self.migration_manager.get_migration(source_actor_name, instance_name)
-        # m.time_measured = timer
         with self.migration_manager_lock:
             self.migration_manager.update_status(
                 source_actor_name, instance_name, Migration.Status.SUCCESS
             )
-        # text = ""
-        # for n, t in timer.items():
-        #     text += f"{n}={t:.2f}s "
 
     @HandlerDecorator(expand=True)
     def on_offload_failed(

@@ -15,6 +15,7 @@ from roleml.extensions.containerization.builders.role import ContainerizedRoleBu
 if TYPE_CHECKING:
     from roleml.extensions.containerization.runtime.impl import RoleRuntime
 
+
 class NativeRole(Role, Runnable):
 
     def __init__(self):

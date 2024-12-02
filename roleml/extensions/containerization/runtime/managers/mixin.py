@@ -1,4 +1,3 @@
-
 from roleml.core.actor.status import RoleStatusManager
 from roleml.core.context import Context, RoleInstanceID
 
@@ -14,12 +13,6 @@ class InterContainerMixin:
             return target
         if target.instance_name in self.role_status_manager.ctrls:
             # target is a native role
-            return target
+            return RoleInstanceID("__this", target.instance_name)
         # target is in another container
-        return RoleInstanceID("__node_controller", target.instance_name)
-    
-    def _convert_actor_name(self, actor_name) -> str:
-        if actor_name == self.context.profile.name:
-            # runtime's profile name is same as the controller's actor name
-            return "__node_controller"
-        return actor_name
+        return target

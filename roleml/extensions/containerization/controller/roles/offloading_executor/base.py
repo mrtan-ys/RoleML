@@ -1,10 +1,11 @@
 from pathlib import Path
+
 from roleml.core.context import ActorProfile, RoleInstanceID
 from roleml.core.role.base import Role
-from roleml.core.role.channels import Event, EventHandler, HandlerDecorator, Service, Task
+from roleml.core.role.channels import Event, Service, Task
 from roleml.core.role.exceptions import CallerError, HandlerError, NoSuchRoleError
-from roleml.core.status import Status
-from roleml.extensions.containerization.controller.helpers.docker import DockerService
+from roleml.core.role.types import Message
+from roleml.core.status import Status, StatusError
 import roleml.extensions.containerization.controller.impl as containerization_controller
 
 
@@ -64,7 +65,9 @@ class OffloadingExecutor(Role):
                         "instance_name": instance_name,
                         "contacts": list(
                             filter(
-                                lambda x: not x.name.startswith(f"{self.profile.name}_"),
+                                lambda x: not x.name.startswith(
+                                    f"{self.profile.name}_"
+                                ),
                                 self.base.ctx.contacts.all_actors(),
                             )
                         ),
@@ -121,7 +124,12 @@ class OffloadingExecutor(Role):
                 continue
             if profile.name.startswith(f"{self.profile.name}_"):
                 continue
+            if profile.name == destination_actor_name:
+                continue
             try:
+                self.logger.debug(
+                    f"Notifying {profile.name} about offload of {instance_name} to {destination_actor_name}"
+                )
                 self.call(
                     RoleInstanceID(profile.name, "offloading_executor"),
                     "notify-offload-succeeded",
@@ -142,12 +150,13 @@ class OffloadingExecutor(Role):
                     self.logger.error(
                         f"Error notifying {profile.name} about offload: {e}"
                     )
-
-        self._update_instance_id_impl(
+        self.logger.debug("All offload notification sent")
+        self._update_instance_id(
             self.base.profile.name,
             instance_name,
             destination_actor_name,
         )
+        self.logger.debug("Instance ID updated")
 
         # then,
         # mark the role as offloaded and remove the container
@@ -166,7 +175,11 @@ class OffloadingExecutor(Role):
 
     @Task("restore", expand=True)
     def restore(
-        self, sender: RoleInstanceID, instance_name: str, contacts: list[ActorProfile], checkpoint: bytes
+        self,
+        sender: RoleInstanceID,
+        instance_name: str,
+        contacts: list[ActorProfile],
+        checkpoint: bytes,
     ):
         for contact in contacts:
             if contact.name != self.base.profile.name:
@@ -180,41 +193,48 @@ class OffloadingExecutor(Role):
         with open(ckpt_save_path, "wb") as f:
             f.write(checkpoint)
         self.logger.info(f"Checkpoint saved to file")
-        self.logger.info(f"Restoring container for role {instance_name}")
-        self.base.container_manager.restore_container(instance_name, ckpt_save_path)
 
+        # add the role to the status manager
+        # note that it will not trigger container manager to create a container
         ctrl = self.base.role_status_manager.add_role(instance_name)
-        ctrl._transfer_status(Status.DECLARED, False, slient=True)
+        # lock the status to prevent other threads accessing the not prepared role
+        with ctrl._status_access_lock.write_lock():  # the lock is reentrant
+            self.logger.info(f"Restoring container for role {instance_name}")
+            self.base.container_manager.restore_container(instance_name, ckpt_save_path)
 
-        try:
-            self.call(
-                self.base.get_containerized_role_id(instance_name),
-                "change-controller",
-                {
-                    # see `change_controller` in runtime/impl.py
-                    "new_profile": ActorProfile(
-                        self.base.profile.name,
-                        self.base.container_manager._convert_loopback_to_host(
-                            self.base.ctx.profile.address
+            # change the status to DECLARED to allow following calls to the role
+            ctrl._transfer_status(Status.DECLARED, False, slient=True)
+            try:
+                self.call(
+                    self.base.get_containerized_role_id(instance_name),
+                    "change-controller",
+                    {
+                        # see `change_controller` in runtime/impl.py
+                        "new_profile": ActorProfile(
+                            self.base.profile.name,
+                            self.base.container_manager._convert_loopback_to_host(
+                                self.base.ctx.profile.address
+                            ),
                         ),
-                    ),
-                    "old_profile": ActorProfile(
-                        sender.actor_name,
-                        self.ctx.contacts.get_actor_profile(sender.actor_name).address,
-                    ),
-                },
-            )
+                        "old_profile": ActorProfile(
+                            sender.actor_name,
+                            self.ctx.contacts.get_actor_profile(
+                                sender.actor_name
+                            ).address,
+                        ),
+                    },
+                )
 
-            self.logger.info(f"Resuming role {instance_name}")
-            ctrl._transfer_status(Status.PAUSED, False, slient=True)
-            ctrl.ready(ignore_callback_error=False)
+                self.logger.info(f"Resuming role {instance_name}")
+                ctrl._transfer_status(Status.PAUSED, False, slient=True)
+                ctrl.ready(ignore_callback_error=False)
 
-            ckpt_save_path.unlink()  # remove the checkpoint
-            self.logger.info(f"Role {instance_name} restored")
-        except:
-            self.logger.exception(f"Error updating role status {instance_name}")
-            ctrl.terminate()
-            raise
+                ckpt_save_path.unlink()  # remove the checkpoint
+                self.logger.info(f"Role {instance_name} restored")
+            except:
+                self.logger.exception(f"Error updating role status {instance_name}")
+                ctrl.terminate()
+                raise
 
     offload_started_event = Event("offload-started")
     offload_succeeded_event = Event("offload-succeeded")
@@ -233,7 +253,7 @@ class OffloadingExecutor(Role):
             ActorProfile(destination_actor_name, destination_actor_address)
         )
 
-        self._update_instance_id_impl(
+        self._update_instance_id(
             source_actor_name,
             instance_name,
             destination_actor_name,
@@ -244,7 +264,7 @@ class OffloadingExecutor(Role):
             "Contacts and instance ID updated."
         )
 
-    def _update_instance_id_impl(
+    def _update_instance_id(
         self,
         source_actor_name: str,
         instance_name: str,
@@ -254,14 +274,70 @@ class OffloadingExecutor(Role):
         new_instance_id = RoleInstanceID(destination_actor_name, instance_name)
         self.base.update_instance_id(old_instance_id, new_instance_id)
 
+        not_ready_roles = set()
         for containerized_role in self.base.container_manager.containerized_roles:
-            if containerized_role == instance_name and self.base.profile.name == source_actor_name:
+            if (
+                containerized_role == instance_name
+                and self.base.profile.name == source_actor_name
+            ):
                 continue
-            self.call(
-                self.base.get_containerized_role_id(containerized_role),
-                "update-instance-id",
-                {
+            self.logger.debug(
+                f"Updating instance ID for {containerized_role}: {old_instance_id} -> {new_instance_id}"
+            )
+            try:
+                self._call_container_update_instance_id(
+                    containerized_role,
+                    old_instance_id,
+                    new_instance_id,
+                    wait_status_timeout=0,
+                )
+            except StatusError:
+                not_ready_roles.add(containerized_role)
+
+        # TODO 暂时不管他们了
+        # def notify_not_ready_roles():
+        #     try:
+        #         for containerized_role in not_ready_roles:
+        #             self._call_container_update_instance_id(
+        #                 containerized_role,
+        #                 old_instance_id,
+        #                 new_instance_id,
+        #                 wait_status_timeout=None,
+        #             )
+        #     except RoleOffloadedError:
+        #         pass
+        #     except StatusError:
+        #         pass
+        #     except Exception as e:
+        #         self.logger.error(
+        #             f"Error updating instance ID for {containerized_role}: {type(e)} - {e}"
+        #         )
+
+        # self.base.thread_manager.add_threaded_task(notify_not_ready_roles)
+
+    def _call_container_update_instance_id(
+        self,
+        containerized_role: str,
+        old_instance_id: RoleInstanceID,
+        new_instance_id: RoleInstanceID,
+        wait_status_timeout: int | None = None,
+    ):
+        # self.logger.debug(
+        #     f"Updating instance ID for {containerized_role}: {old_instance_id} -> {new_instance_id}, {wait_status_timeout=}"
+        # )
+        if not self.base.role_status_manager.ctrl(containerized_role).is_ready:
+            return
+        self.base._call_containerized_role(
+            self.name,
+            containerized_role,
+            "actor",
+            "update-instance-id",
+            Message(
+                args={
                     "old_instance_id": old_instance_id,
                     "new_instance_id": new_instance_id,
                 },
-            )
+            ),
+            # wait_status_timeout=wait_status_timeout,
+            # ignore_status=True,
+        )

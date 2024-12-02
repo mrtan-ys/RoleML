@@ -1,4 +1,3 @@
-import time
 from typing import Any, Callable, Iterable, Mapping, Optional, Union
 from typing_extensions import override
 

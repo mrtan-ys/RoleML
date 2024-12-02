@@ -1,11 +1,11 @@
 from datetime import datetime
-from typing import Literal, Optional
-import numpy as np
-import matplotlib.pyplot as plt
 import concurrent.futures
+
+import numpy as np
 
 
 class AntColonyOptimizer:
+
     def __init__(
         self,
         task_req: np.ndarray,
@@ -94,7 +94,7 @@ class AntColonyOptimizer:
             iter_best_solution = None
 
             # 初始化蚂蚁
-            ants = np.ndarray((self.ants_num, self.m), dtype=int) * -1
+            ants = np.ones((self.ants_num, self.m), dtype=int) * -1
 
             # 搜索解决方案
             for ant_i in range(self.ants_num):
@@ -146,16 +146,6 @@ class AntColonyOptimizer:
 
             if stop_count >= self.stop_iter:
                 break
-
-            print(f"第{iteration}代 Time: {datetime.now() - t2}")
-            
-
-        print(f"Time: {datetime.now() - t}, Best Cost: {best_cost},")
-
-        for x, ys in history.items():
-            for y in ys:
-                plt.scatter(x, y, color='blue', s=2)
-        plt.show()
 
         return best_solution, best_cost
     
@@ -234,15 +224,5 @@ class AntColonyOptimizer:
 
             if stop_count >= self.stop_iter:
                 break
-
-            print(f"第{iteration}代 Time: {datetime.now() - t2}")
-
-
-        print(f"Time: {datetime.now() - t}, Best Cost: {best_cost},")
-
-        for x, ys in history.items():
-            for y in ys:
-                plt.scatter(x, y, color='blue', s=2)
-        plt.show()
 
         return best_solution, best_cost

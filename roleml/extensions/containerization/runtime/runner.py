@@ -3,14 +3,14 @@ import signal
 import threading
 import time
 from typing import cast
-from flask import Flask
-from flask import request, jsonify
+
+from flask import Flask, request, jsonify
 
 from roleml.core.actor.base import BaseActor
 from roleml.extensions.containerization.builders.actor import RoleRuntimeBuilder
 from roleml.extensions.containerization.builders.spec import ActorBootstrapSpec
 from roleml.extensions.containerization.runtime.impl import RoleRuntime
-from roleml.scripts.runner.single import run_actor, run_actor_gracefully
+from roleml.scripts.runner.single import run_actor_gracefully
 
 
 class RemoteRunner:

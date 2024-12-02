@@ -1,11 +1,11 @@
 from datetime import datetime
 import itertools
 from threading import RLock
+
 from roleml.core.role.base import Role
 from roleml.core.role.channels import Service
 from roleml.extensions.containerization.controller.roles.prober.base import HostStatsRecord, RoleStatsRecord
 from roleml.extensions.containerization.roles.types import AvgStats, HostInfo, HostStatsRecordWithDelta, RoleStatsRecordWithDelta
-from roleml.shared.interfaces import Runnable
 from roleml.extensions.containerization.roles.monitor.model import (
     session,
     HostStatsModel,
@@ -13,7 +13,7 @@ from roleml.extensions.containerization.roles.monitor.model import (
 )
 
 
-class ResourceMonitor(Role, Runnable):
+class ResourceMonitor(Role):
 
     def __init__(self):
         super().__init__()

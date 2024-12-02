@@ -237,6 +237,9 @@ class StatusControl:
                 self._check_execute.wait(timeout)
                 self._status_access_lock.acquire_read_lock()
                 if not self._is_status(Status.READY):
+                    if self._is_status(Status.OFFLOADED):
+                        assert self._offloaded_to is not None
+                        raise RoleOffloadedError(self._name, self._offloaded_to)
                     # we need to notify the calling thread if the object has been terminated
                     raise StatusError(f'Cannot acquire execution after timeout; {self._name} is now at {self.status}')
                 return self._set_execution_ticket(worker_id)

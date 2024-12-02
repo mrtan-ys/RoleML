@@ -1,58 +1,56 @@
 import threading
 import time
 from pathlib import Path
-from typing import Iterator, Optional, cast as c
+from typing import Optional, cast as c
 import uuid
 from typing_extensions import override
 
 from roleml.core.context import ActorProfile, RoleInstanceID, parse_instances
-from roleml.core.role.base import Role
 from roleml.core.role.channels import Event, EventHandler, HandlerDecorator
-from roleml.library.roles.conductor.helpers import (
-    match_actors,
-    detect_templates,
-    apply_templates,
-)
 from roleml.library.roles.conductor.base import Conductor as BaseConductor
-from roleml.library.roles.conductor.types import (
-    RunSpec,
-    RunSpecTemplate,
-    validate_run_spec,
-)
-from roleml.shared.cli import RuntimeCLI
-from roleml.shared.collections.segmentation import SegmentedList
-from roleml.shared.interfaces import Runnable
+from roleml.library.roles.conductor.types import RunSpec, RunSpecTemplate, validate_run_spec
 from roleml.shared.yml import load_yaml, save_yaml
 
 
 class RoleNameMap:
     def __init__(self):
-        self._role_name_map: dict[tuple[str, str], str] = {}
-        self._lock = threading.Lock()
+        self._role_name_map: dict[tuple[str, str], list[str]] = {}
+        self._unique_names: set[str] = set()
+        self._lock = threading.RLock()
 
     def add_role(self, actor: str, role: str) -> str:
+        # generate a unique name for the role
+        # can not use the same name for different roles of the same actor
         with self._lock:
             if (actor, role) in self._role_name_map:
                 raise ValueError(f"Role {role} of actor {actor} already exists")
             else:
                 new_name = f"{role}_{uuid.uuid4().hex}"
-                self._role_name_map[(actor, role)] = new_name
+                self._role_name_map[(actor, role)] = [new_name]
+                self._unique_names.add(new_name)
                 return new_name
 
     def get_unique_name(self, actor: str, role: str) -> str:
         with self._lock:
-            return self._role_name_map[(actor, role)]
+            if role in self._unique_names:
+                return role
+            roles = self._role_name_map[(actor, role)]
+            if len(roles) == 1:
+                return roles[0]
+            else:
+                raise ValueError(f"Role {role} of actor {actor} has multiple instances: {roles}, please specify")
 
-    def change_role_owner(self, old_actor: str, role: str, new_actor: str):
+    def change_role_owner(self, unique_name: str, new_actor: str):
         with self._lock:
-            self._role_name_map[(new_actor, role)] = self._role_name_map[(old_actor, role)]
-            del self._role_name_map[(old_actor, role)]
+            old_actor, usr_name = self.get_user_defined_name(unique_name)
+            self._role_name_map.setdefault((new_actor, usr_name), []).append(unique_name)
+            self._role_name_map[(old_actor, usr_name)].remove(unique_name)
 
     def get_user_defined_name(self, unique_name: str) -> tuple[str, str]:
         """根据唯一实例名获取用户定义的实例名，例如：role1_123456789 -> (node1, role1)"""
         with self._lock:
             for k, v in self._role_name_map.items():
-                if v == unique_name:
+                if unique_name in v:
                     return k
             raise ValueError(f"Unique name {unique_name} not found")
 
@@ -262,11 +260,8 @@ class Conductor(BaseConductor):
     def on_offload_started(
         self, _, source_actor_name: str, instance_name: str, destination_actor_name: str
     ):
-        _, role_user_defined_name = self.role_unique_name_map.get_user_defined_name(
-            instance_name
-        )
         self.logger.info(
-            f"Offloading role {source_actor_name}/{role_user_defined_name} to {destination_actor_name} started"
+            f"Offloading role {source_actor_name}/{instance_name} to {destination_actor_name} started"
         )
 
     @HandlerDecorator(expand=True)
@@ -279,14 +274,11 @@ class Conductor(BaseConductor):
         destination_actor_address: str,
         # timer: dict[str, float],
     ):
-        _, role_user_defined_name = self.role_unique_name_map.get_user_defined_name(
-            instance_name
-        )
         self.role_unique_name_map.change_role_owner(
-            source_actor_name, role_user_defined_name, destination_actor_name
+            instance_name, destination_actor_name
         )
         self.logger.info(
-            f"Offloading role {source_actor_name}/{role_user_defined_name} to {destination_actor_name} succeeded"
+            f"Offloading role {source_actor_name}/{instance_name} to {destination_actor_name} succeeded"
         )
 
     @HandlerDecorator(expand=True)
@@ -298,9 +290,6 @@ class Conductor(BaseConductor):
         destination_actor_name: str,
         error: str,
     ):
-        _, role_user_defined_name = self.role_unique_name_map.get_user_defined_name(
-            instance_name
-        )
         self.logger.error(
-            f"Offloading role {source_actor_name}/{role_user_defined_name} to {destination_actor_name} failed: {error}"
+            f"Offloading role {source_actor_name}/{instance_name} to {destination_actor_name} failed: {error}"
         )

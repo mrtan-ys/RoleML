@@ -1,0 +1,3 @@
+<<: !include ./topo/small-offload.yaml
+profiles: !include ./nodes/small-offload.yaml profiles
+roles: !include ./roles/small-offload.yaml

@@ -1,10 +1,7 @@
 from typing import Union
 from typing_extensions import override
 
-
-from roleml.core.actor.default.managers.task import (
-    TaskManager as DefaultTaskManager,
-)
+from roleml.core.actor.default.managers.task import TaskManager as DefaultTaskManager
 from roleml.core.actor.helpers import PayloadsPickledMessage
 from roleml.core.context import RoleInstanceID
 from roleml.core.messaging.types import Args, Payloads, Tags
@@ -19,6 +16,10 @@ class TaskManager(DefaultTaskManager, InterContainerMixin):
         super().initialize()
 
     @override
+    def _is_local_instance(self, instance_name: RoleInstanceID) -> bool:
+        return instance_name.instance_name == "__this"
+
+    @override
     def call_task(self, instance_name: str, target: RoleInstanceID, channel_name: str,
                   message: Union[Message, PayloadsPickledMessage]) -> TaskInvocation:
         target = self._convert_target_actor_name(target)
@@ -31,14 +32,11 @@ class TaskManager(DefaultTaskManager, InterContainerMixin):
         except KeyError:
             # raise AssertionError('unspecified from_actor_name in task result message')
             from_actor_name = sender
-        from_actor_name = self._convert_actor_name(from_actor_name)
         super()._on_receive_task_result_message(from_actor_name, tags, args, payloads)
-
 
     @override
     def _on_receive_task_call_message(self, sender: str, tags: Tags, args: Args, payloads: Payloads):
         # should only be called by node controller.
-        sender = self._convert_actor_name(sender)
         super()._on_receive_task_call_message(sender, tags, args, payloads)
 
     def update_instance_id(

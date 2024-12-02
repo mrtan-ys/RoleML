@@ -16,13 +16,16 @@ class ServiceManager(DefaultServiceManager, InterContainerMixin):
         super().initialize()
 
     @override
+    def _is_local_instance(self, instance_name: RoleInstanceID) -> bool:
+        return instance_name.instance_name == "__this"
+
+    @override
     def _on_receive_service_message(self, sender: str, tags: Tags, args: Args, payloads: Payloads):
         try:
             from_actor_name = tags['from_actor_name']
         except KeyError:
             # raise AssertionError('unspecified from actor name')
             from_actor_name = sender
-        from_actor_name = self._convert_actor_name(from_actor_name)
         return super()._on_receive_service_message(from_actor_name, tags, args, payloads)
 
     @override

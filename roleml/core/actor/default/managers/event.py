@@ -367,6 +367,9 @@ class EventManager(BaseEventManager, ChannelCallManagerMixin):
 
     # region subscription/unsubscription
 
+    def _is_local_instance(self, instance_name: RoleInstanceID) -> bool:
+        return instance_name.actor_name == self.context.profile.name
+
     def subscribe(self, instance_name: str, target: RoleInstanceID, channel_name: str,
                   handler: Callable[[RoleInstanceID, Args, Payloads], Any],
                   *, conditions: Optional[dict[str, Any]] = None, mode: EventSubscriptionMode = 'forever'):
@@ -380,7 +383,7 @@ class EventManager(BaseEventManager, ChannelCallManagerMixin):
                 # the whole process should be atomic, so we need to lock the convey table first
                 with convey_table.lock:
                     try:
-                        if target.actor_name == self.context.profile.name:
+                        if self._is_local_instance(target):
                             self._subscribe_local(
                                 instance_name, target.instance_name,
                                 channel_name, handler, parsed_conditions=parsed_conditions, mode=mode)
@@ -487,7 +490,7 @@ class EventManager(BaseEventManager, ChannelCallManagerMixin):
                 raise RuntimeError(f'role {instance_name} did not subscribe to {target}/{channel_name}')
             with convey_table.lock:
                 try:
-                    if target.actor_name == self.context.profile.name:
+                    if self._is_local_instance(target):
                         self._unsubscribe_local(instance_name, target.instance_name, channel_name)
                     else:
                         self._unsubscribe_remote(instance_name, target, channel_name)
@@ -557,7 +560,7 @@ class EventManager(BaseEventManager, ChannelCallManagerMixin):
     @after(target='relationships', method='add_to_relationship')    # synchronized by target method add_to_relationship
     def _advice_after_add_to_relationship(self, activity: InvocationActivity, _result):
         self.thread_manager.add_threaded_task(
-            self._advice_after_add_to_relationship_impl, (activity.args[0], activity.args[1]))
+            self._advice_after_add_to_relationship_impl, (activity.args[0], activity.args[1:]))
 
     def _advice_after_add_to_relationship_impl(self, relationship_name: str, new_instances: Iterable[RoleInstanceID]):
         with self.subscription_listeners_lock:
@@ -582,7 +585,7 @@ class EventManager(BaseEventManager, ChannelCallManagerMixin):
     @after(target='relationships', method='remove_from_relationship')   # synchronized by target method remove_from_rel.
     def _advice_after_remove_from_relationship(self, activity: InvocationActivity, _result):
         self.thread_manager.add_threaded_task(
-            self._advice_after_remove_from_relationship_impl, (activity.args[0], activity.args[1]))
+            self._advice_after_remove_from_relationship_impl, (activity.args[0], activity.args[1:]))
 
     def _advice_after_remove_from_relationship_impl(self, relationship_name: str, instances: Iterable[RoleInstanceID]):
         with self.subscription_listeners_lock:

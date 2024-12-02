@@ -1,9 +1,7 @@
 from typing import Any, Callable, Optional
 from typing_extensions import override
 
-from roleml.core.actor.default.managers.event import (
-    EventManager as DefaultEventManager,
-)
+from roleml.core.actor.default.managers.event import EventManager as DefaultEventManager
 from roleml.core.actor.manager.helpers import parse_conditions
 from roleml.core.context import RoleInstanceID
 from roleml.core.messaging.types import Args, Payloads, Tags
@@ -20,6 +18,10 @@ class EventManager(DefaultEventManager, InterContainerMixin):
     @override
     def initialize(self):
         super().initialize()
+
+    @override
+    def _is_local_instance(self, instance_name: RoleInstanceID) -> bool:
+        return instance_name.instance_name == "__this"
 
     @override
     def _on_role_status_starting(self, instance_name: str, old_status: Status):
@@ -56,7 +58,6 @@ class EventManager(DefaultEventManager, InterContainerMixin):
         except KeyError:
             # raise AssertionError('incomplete event discontinuing info: missing actor_name')
             actor_name = sender
-        actor_name = self._convert_actor_name(actor_name)
         return super()._on_receive_event_discontinuing_message(actor_name, tags, _, __)
 
     # region emit
@@ -68,7 +69,6 @@ class EventManager(DefaultEventManager, InterContainerMixin):
         except KeyError:
             # raise AssertionError('incomplete event trigger info: missing source_actor_name')
             source_actor_name = sender
-        source_actor_name = self._convert_actor_name(source_actor_name)
         return super()._on_receive_event_message_impl(source_actor_name, tags, args, payloads)
 
     # endregion emit
@@ -89,7 +89,6 @@ class EventManager(DefaultEventManager, InterContainerMixin):
         except KeyError:
             # raise AssertionError('incomplete tags for event subscription: missing subscriber_actor_name')
             subscriber_actor_name = sender
-        subscriber_actor_name = self._convert_actor_name(subscriber_actor_name)
         return super()._on_receive_event_subscription_message(subscriber_actor_name, tags, args, _)
 
     @override
@@ -104,7 +103,6 @@ class EventManager(DefaultEventManager, InterContainerMixin):
         except KeyError as e:
             # raise AssertionError('incomplete tags for event subscription: missing subscriber_actor_name')
             subscriber_actor_name = sender
-        subscriber_actor_name = self._convert_actor_name(subscriber_actor_name)
         return super()._on_receive_event_unsubscription_message(subscriber_actor_name, tags, _, __)
 
     # endregion subscription/unsubscription
@@ -113,13 +111,19 @@ class EventManager(DefaultEventManager, InterContainerMixin):
         self, instance_id: RoleInstanceID, new_instance_id: RoleInstanceID
     ):
         with self.event_lock.write_lock():
+            # shallow copy, avoid modifying the original dict while other thread is iterating
+            self.events = self.events.copy()
             for event_channels in self.events.values():
                 for event_info in event_channels.values():
                     if instance_id in event_info.remote_subscribers:
+                        # shallow copy
+                        event_info.remote_subscribers = event_info.remote_subscribers.copy()
                         sub_info = event_info.remote_subscribers.pop(instance_id)
                         event_info.remote_subscribers[new_instance_id] = sub_info
 
         with self.subscription_lock.write_lock():
+            # shallow copy
+            self.subscriptions_by_source_channel = self.subscriptions_by_source_channel.copy()
             if instance_id in self.subscriptions_by_source_channel:
                 sub_info = self.subscriptions_by_source_channel.pop(instance_id)
                 self.subscriptions_by_source_channel[new_instance_id] = sub_info

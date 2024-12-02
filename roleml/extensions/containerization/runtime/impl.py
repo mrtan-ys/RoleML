@@ -2,6 +2,7 @@ from typing import Any, Callable, Iterable, Mapping, Optional, Union
 from typing_extensions import override
 
 import fasteners
+
 from roleml.core.actor.base import BaseActor
 from roleml.core.actor.default.managers.element import ElementManager
 from roleml.core.actor.default.managers.runnable import RunnableManager
@@ -44,9 +45,10 @@ class RoleRuntime(BaseActor):
         collective_implementor: CollectiveImplementor,
         handshakes: Optional[list[str]] = None,
     ):
-        context = ContextProxy(
-            context if context is not None else Context.build(profile)
-        )  # type: ignore
+        if context is None:
+            context = Context.build(profile)
+        if not isinstance(context, ContextProxy):
+            context = ContextProxy(context)   # type: ignore
         super().__init__(
             profile,
             context=context,
@@ -81,23 +83,13 @@ class RoleRuntime(BaseActor):
         self.add_role("actor", self.native_role)
 
         self.ctx.relationships.add_to_relationship(
-            "/", RoleInstanceID("__node_controller", "actor")
+            "/", RoleInstanceID(self.profile.name, "actor")
         )
         # add node controller' s actor to 'manager' relationships to allow control messages
         # TODO: currently, node controller' s name is same as runtime's name. Maybe we should change it.
         self.ctx.relationships.add_to_relationship(
             "manager",
             RoleInstanceID(profile.name, "actor"),
-            RoleInstanceID("__node_controller", "actor"),
-        )
-
-        # avoid `actor not identified` error
-        # TODO this is a workaround, should find a better way to handle this
-        self.ctx.contacts.add_contact(
-            ActorProfile(
-                profile.name,
-                self.ctx.contacts.get_actor_profile("__node_controller").address,
-            )
         )
 
         self._actor_started_callback: list[Callable[[], Any]] = []
@@ -112,7 +104,7 @@ class RoleRuntime(BaseActor):
         # So we need to update the address in the contact.
         self.ctx.contacts.add_contact(old_profile)
         old_controller_internal_ip = self.ctx.contacts.get_actor_profile(
-            "__node_controller"
+            old_profile.name
         ).address.split(":")[0]
         old_controller_outside_ip = old_profile.address.split(":")[0]
         for profile in list(
@@ -137,7 +129,6 @@ class RoleRuntime(BaseActor):
 
         # replace controller's contact with new one
         self.ctx.contacts.add_contact(new_profile)
-        self.ctx.contacts.add_contact(ActorProfile("__node_controller", new_profile.address))
 
         self.ctx.relationships.remove_from_relationship(
             "manager", *self.ctx.relationships.get_relationship("manager")
@@ -145,7 +136,6 @@ class RoleRuntime(BaseActor):
         self.ctx.relationships.add_to_relationship(
             "manager",
             RoleInstanceID(new_profile.name, "actor"),
-            RoleInstanceID("__node_controller", "actor"),
         )
 
         self.procedure_invoker.local_name = new_profile.name

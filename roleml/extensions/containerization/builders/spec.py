@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import Optional
 
-
 from roleml.core.builders.actor import (
     ActorBootstrapSpec as BaseActorBootstrapSpec,
 )

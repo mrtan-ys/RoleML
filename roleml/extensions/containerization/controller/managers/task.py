@@ -3,14 +3,13 @@ from typing import Any
 from typing_extensions import override
 
 from roleml.core.actor.default.managers.task import (
-    ExecutionTaskInfo,
     Promise,
     WaitingTaskInfo,
     TASK_UNIFIED_MESSAGING_CHANNEL,
     TASK_RESULT_UNIFIED_MESSAGING_CHANNEL,
     TaskManager as DefaultTaskManager,
 )
-from roleml.core.context import ActorProfile, RoleInstanceID
+from roleml.core.context import RoleInstanceID
 from roleml.core.messaging.exceptions import InvocationRefusedError
 from roleml.core.messaging.types import Args, Payloads, Tags
 from roleml.core.role.exceptions import ChannelNotFoundError
@@ -45,7 +44,8 @@ class TaskManager(DefaultTaskManager, ContainerInvocationMixin):
                 # throws ProcedureInvokerError, just let it propagate
                 self._foward_task_result_message_to_container(to_instance_name, sender, tags, args, payloads)
 
-    def _foward_task_result_message_to_container(self, to_instance_name: str, original_sender: str, tags: Tags, args: Args, payloads: Payloads):
+    def _foward_task_result_message_to_container(
+            self, to_instance_name: str, original_sender: str, tags: Tags, args: Args, payloads: Payloads):
         tags = {
             **tags,
             'from_actor_name': original_sender,

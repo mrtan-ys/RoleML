@@ -1,17 +1,16 @@
 import logging
-from threading import Condition, Event
+from threading import Event
 from typing_extensions import override
 
-
 from fasteners import ReaderWriterLock
+
 from roleml.core.actor.manager.bases import BaseManager
 from roleml.core.actor.status import RoleStatusManager
-from roleml.core.context import ActorProfile, Context
+from roleml.core.context import Context
 from roleml.core.messaging.base import ProcedureInvoker, ProcedureProvider
 from roleml.core.messaging.types import Args, Payloads, Tags
 from roleml.core.role.base import Role
 from roleml.extensions.containerization.runtime.managers.wrapper import ProcedureInvokerWrapper
-from roleml.extensions.containerization.runtime.wrapper import ContextProxy
 from roleml.shared.interfaces import Runnable
 from roleml.shared.multithreading.management import ThreadManager
 

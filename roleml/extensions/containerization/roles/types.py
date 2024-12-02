@@ -1,6 +1,3 @@
-
-
-
 from typing_extensions import TypedDict
 
 from roleml.extensions.containerization.controller.roles.prober.base import HostStatsRecord, RoleStatsRecord

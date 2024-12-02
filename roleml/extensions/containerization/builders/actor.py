@@ -3,7 +3,7 @@ from logging import Logger
 import logging
 import logging.handlers
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 from typing_extensions import override
 import warnings
 
@@ -20,6 +20,7 @@ from roleml.extensions.containerization.builders.spec import ActorBootstrapSpec,
 from roleml.extensions.containerization.controller.impl import NodeController
 from roleml.extensions.containerization.runtime.impl import RoleRuntime
 from roleml.extensions.containerization.runtime.managers.wrapper import ProcedureInvokerWrapper
+from roleml.extensions.containerization.runtime.wrapper import ContextProxy
 
 
 __all__ = ["NodeControllerBuilder", "RoleRuntimeBuilder"]
@@ -156,6 +157,7 @@ class RoleRuntimeBuilder(BaseActorBuilder[BaseActor]):
             raise ValueError('missing actor profile')
 
         ctx = self._build_context()
+        ctx = cast(Context, ContextProxy(ctx)) # ignore type error
         root_logger = logging.getLogger('roleml')
         try:
             self._build_logging(ctx, root_logger)   # name of any other logger created: roleml.<custom-name>
@@ -190,7 +192,7 @@ class RemoteLogHandler(logging.Handler):
         self._role_name = role_name
         self._ctx = ctx
         self._procedure_invoker = procedure_invoker
-        self._executor = ThreadPoolExecutor(max_workers=5, thread_name_prefix="RemoteLogHandler")
+        self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="RemoteLogHandler")
 
     @override
     def emit(self, record: logging.LogRecord) -> None:
@@ -205,7 +207,7 @@ class RemoteLogHandler(logging.Handler):
             args = record.__dict__
             args.pop("exc_info", None) # remove traceback object to avoid pickling error
             self._procedure_invoker.invoke_procedure(
-                "__node_controller",
+                self._ctx.profile.name,
                 "LOG_EMIT",
                 tags=tags,
                 args=args,
