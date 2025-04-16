@@ -1,8 +1,8 @@
 name: conductor
 address: 127.0.0.1:4000
-procedure_invoker: roleml.extensions.messaging.default.separate.DefaultProcedureInvoker
-procedure_provider: roleml.extensions.messaging.default.separate.DefaultProcedureProvider
-# messaging_component: roleml.extensions.messaging.default.comb.DefaultMessagingComponent
+# procedure_invoker: roleml.extensions.messaging.default.separate.DefaultProcedureInvoker
+# procedure_provider: roleml.extensions.messaging.default.separate.DefaultProcedureProvider
+messaging_component: roleml.extensions.messaging.default.comb.DefaultMessagingComponent
 collective_implementor: roleml.core.actor.group.impl.threaded.ThreadedCollectiveImplementor
 roles:
   conductor:
