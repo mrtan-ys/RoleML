@@ -111,6 +111,8 @@ class NativeRole(Role, Runnable):
     @require_relationship('manager', 'roles can only be deployed by manager')
     @Task('assign-role', expand=True)
     def assign_role(self, _, name: str, spec: RoleSpec):
+        if name == 'actor':
+            raise CallerError('cannot assign role named "actor"')
         role_builder = RoleBuilder(name, spec)
         role_builder.build()
         role_builder.install(self.base, start=True)
@@ -122,6 +124,8 @@ class NativeRole(Role, Runnable):
     @require_relationship('manager', 'roles can only be terminated by manager')
     @Task('terminate-role', expand=True)
     def terminate_role(self, _, name: str):
+        if name == 'actor':
+            raise CallerError('cannot terminate native role')
         self.base.stop_role(name)   # managers will do their things
         self.logger.info(f'role instance {name} removed via native role')
         self.role_removed.emit(args={'name': name})
@@ -133,6 +137,8 @@ class NativeRole(Role, Runnable):
     @require_relationship('manager', 'role status can only be changed by manager')
     @Task('change-role-status', expand=True)
     def change_role_status(self, _, name: str, status: Status):
+        if name == 'actor':
+            raise CallerError('cannot change status of native role')
         status = Status(status)     # allow status to be specified as a str
         if status == Status.TERMINATED:
             raise CallerError('please use terminate-role for role termination')
