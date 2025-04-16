@@ -66,14 +66,14 @@ class ElementInstance(Generic[T]):
             self._instance = impl.impl
         elif self.deserializer and self.deserializer_source:
             self.deserialize()
+        elif self.constructor:
+            self._instance = None
+            if self.construct_strategy == ConstructStrategy.ONCE_EAGER:
+                self.construct()
         elif element.default_impl is not None:
             self._instance = element.default_impl
         else:
-            self._instance = None
-
-        # handle eager load (skipped when impl is provided or object is deserialized from file)
-        if (self.construct_strategy == ConstructStrategy.ONCE_EAGER) and (self._instance is None):
-            self.construct()
+            raise RuntimeError(f'no provider for element {self.name}')
 
     @property
     def read_mode(self):
