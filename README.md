@@ -57,4 +57,18 @@ See [CHANGELOG.md](./CHANGELOG.md).
 
 A technical paper describing the system is published on the Middleware 2024 conference. If you find this repository useful, please cite the paper in your work:
 
-__Yuesheng Tan, Lei Yang, Wenhao Li, and Yuda Wu. 2024. RoleML: a Role-Oriented Programming Model for Customizable Distributed Machine Learning on Edges. In 24th International Middleware Conference (MIDDLEWARE ’24), December 2–6, 2024, Hong Kong, Hong Kong. ACM, New York, NY, USA, 13 pages. https://doi.org/10.1145/3652892.3700765__
+__Yuesheng Tan, Lei Yang, Wenhao Li, and Yuda Wu. 2024. RoleML: a Role-Oriented Programming Model for Customizable Distributed Machine Learning on Edges. In Proceedings of the 25th International Middleware Conference (Middleware '24). Association for Computing Machinery, New York, NY, USA, 279–291. https://doi.org/10.1145/3652892.3700765__
+
+```bibtex
+@inproceedings {roleml,
+  title = {RoleML: a Role-Oriented Programming Model for Customizable Distributed Machine Learning on Edges},
+  author = {Tan, Yuesheng and Yang, Lei and Li, Wenhao and Wu, Yuda},
+  year = {2024},
+  isbn = {9798400706233},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  booktitle = {Proceedings of the 25th International Middleware Conference},
+  pages = {279–291},
+  series = {Middleware '24}
+}
+```
