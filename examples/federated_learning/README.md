@@ -53,7 +53,7 @@ We will run an FL experiment using the scripts in `<fl-root>/tests`:
 
 6. After the deployment is completed, you will see a prompt in the Conductor terminal. If the deployment gets stuck (check terminal A), simply kill (Ctrl+C) the scripts in both terminals and start the test again. (If possible, use Ctrl+D (EOF) instead for terminal B to stop the conductor gracefully.)
 
-7. In the Conductor CLI, run the command **`start`** to initiate a DML run. You can also provide extra arguments originally defined in `conductor.py`, just like how they will be accepted by an `argparse` argument parser. In this example, a possible command with arguments is `start --num_rounds 20 --select-ratio 0.5`, which means the FL run will last for 20 rounds and 50% of the clients will be selected in each round.
+7. In the Conductor CLI, run the command **`start`** to initiate a DML run. You can also provide extra arguments originally defined in `conductor.py`, just like how they will be accepted by an `argparse` argument parser. In this example, a possible command with arguments is `start --num_rounds 20 --select_ratio 0.5`, which means the FL run will last for 20 rounds and 50% of the clients will be selected in each round.
 
 8. Check the outputs of terminal A and wait for the FL run to finish (you should see something like `FL is done`). Then, exit by Ctrl+C for terminal A and Ctrl+D for terminal B (running the Conductor). The logs will be saved to `logs/<start-time>`.
 
