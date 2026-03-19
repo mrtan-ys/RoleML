@@ -1,7 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Final, Generic, Literal, NamedTuple, Optional, TypeAlias, Union
-from typing_extensions import TypedDict, Required
+from typing import Any, ClassVar, Final, Generic, Literal, NamedTuple, Optional, Union
+from typing_extensions import TypedDict, Required, TypeAlias
 
 from roleml.core.actor.base import BaseActor
 from roleml.core.builders.element import ElementImplementationSpec, load_element_impl_spec
