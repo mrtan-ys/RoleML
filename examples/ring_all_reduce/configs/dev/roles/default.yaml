@@ -23,7 +23,7 @@ client.*:   # node name (RegEx)
   aggregator:
     class: ring_all_reduce.roles.aggregator.AllReduceAggregator
     options:
-      client_id: $[0-9]
+      client_id: $c[0-9]
       num_clients: 10
       collect_channel: 'compute-gradients'
       apply_update_channel: 'apply-gradients'
