@@ -6,7 +6,7 @@ build-backend = 'setuptools.build_meta'
 name = 'roleml-ai'
 description = "A role-oriented programming model for distributed ML"
 dynamic = ['version']
-requires-python = '>=3.9, <4'       # containerization requires >=3.11
+requires-python = '>=3.11, <4'
 dependencies = [
     'schema',                       # for config format validation
     'fasteners >= 0.19',            # for concurrent access (reader-writer lock)
