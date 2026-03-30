@@ -4,7 +4,8 @@ from typing import Any, Callable, Iterable, Mapping, Optional, Union
 
 from roleml.core.actor.group.base import CollectiveImplementor
 from roleml.core.actor.group.helpers import ErrorHandlingStrategy
-from roleml.core.actor.manager.bases import BaseServiceManager, BaseTaskManager, BaseEventManager, BaseElementManager
+from roleml.core.actor.manager.bases.channels import BaseEventManager, BaseServiceManager, BaseTaskManager
+from roleml.core.actor.manager.bases.elements import BaseElementManager
 from roleml.core.actor.status import RoleStatusManager
 from roleml.core.context import ActorProfile, Context, RoleInstanceID
 from roleml.core.messaging.base import ProcedureInvoker, ProcedureProvider

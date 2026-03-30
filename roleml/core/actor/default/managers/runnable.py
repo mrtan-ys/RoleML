@@ -1,6 +1,6 @@
 import logging
 
-from roleml.core.actor.manager.bases import BaseRunnableManager
+from roleml.core.actor.manager.bases.runnable import BaseRunnableManager
 from roleml.core.role.base import Role
 from roleml.core.status import Status
 from roleml.shared.interfaces import Runnable

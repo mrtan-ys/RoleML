@@ -1,4 +1,4 @@
-from roleml.core.actor.manager.bases import BaseManager
+from roleml.core.actor.manager.base import BaseManager
 from roleml.core.role.base import Role
 from roleml.extensions.plugins.partner.base import Partner
 

@@ -3,7 +3,7 @@ from io import IOBase
 from threading import RLock
 from typing import Any, Generic, Optional
 
-from roleml.core.actor.manager.bases import BaseElementManager
+from roleml.core.actor.manager.bases.elements import BaseElementManager
 from roleml.core.role.base import Role
 from roleml.core.role.elements import Element, ConstructStrategy, InitializeStrategy, ElementImplementation
 from roleml.core.status import Status

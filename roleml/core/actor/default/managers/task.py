@@ -11,7 +11,7 @@ from fasteners import ReaderWriterLock
 
 from roleml.core.actor.default.managers.channels import ChannelCallManagerMixin
 from roleml.core.actor.helpers import PayloadsPickledMessage
-from roleml.core.actor.manager import BaseTaskManager
+from roleml.core.actor.manager.bases.channels import BaseTaskManager
 from roleml.core.context import RoleInstanceID
 from roleml.core.messaging.exceptions import InvocationRefusedError, ProcedureInvokerError
 from roleml.core.messaging.types import Args, Payloads, Tags

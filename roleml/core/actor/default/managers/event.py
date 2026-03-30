@@ -8,7 +8,7 @@ from typing import Any, Callable, Iterable, Mapping, NamedTuple, Optional, Union
 from fasteners import ReaderWriterLock
 
 from roleml.core.actor.default.managers.channels import ChannelCallManagerMixin
-from roleml.core.actor.manager import BaseEventManager
+from roleml.core.actor.manager.bases.channels import BaseEventManager
 from roleml.core.actor.manager.helpers import check_conditions, parse_conditions, EventConditionChecker
 from roleml.core.context import RoleInstanceID, Relationships
 from roleml.core.messaging.exceptions import InvocationAbortError, InvocationRefusedError

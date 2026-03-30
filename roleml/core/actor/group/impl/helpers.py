@@ -5,7 +5,7 @@ from typing import Any, Callable, Iterable, Optional, Mapping, Union
 
 from roleml.core.actor.group.helpers import ErrorHandlingStrategy
 from roleml.core.actor.helpers import PayloadsPickledMessage
-from roleml.core.actor.manager.bases import BaseServiceManager, BaseTaskManager
+from roleml.core.actor.manager.bases.channels import BaseTaskManager, BaseServiceManager
 from roleml.core.context import RoleInstanceID
 from roleml.core.role.types import Message, TaskInvocation
 

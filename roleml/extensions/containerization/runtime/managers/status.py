@@ -4,7 +4,7 @@ from typing_extensions import override
 
 from fasteners import ReaderWriterLock
 
-from roleml.core.actor.manager.bases import BaseManager
+from roleml.core.actor.manager.base import BaseManager
 from roleml.core.actor.status import RoleStatusManager
 from roleml.core.context import Context
 from roleml.core.messaging.base import ProcedureInvoker, ProcedureProvider

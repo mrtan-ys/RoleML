@@ -1,7 +1,7 @@
 import logging
 from typing_extensions import override
 
-from roleml.core.actor.manager.bases import BaseManager
+from roleml.core.actor.manager.base import BaseManager
 from roleml.core.messaging.types import Args, Payloads, Tags
 from roleml.core.role.base import Role
 
