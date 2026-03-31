@@ -5,13 +5,13 @@ from typing import Optional
 from roleml.core.actor.default import Actor
 from roleml.core.actor.group.base import CollectiveImplementor
 from roleml.core.actor.group.impl.null import CollectiveImplementorDisabled
+from roleml.core.actor.manager.bases.elements import ElementImplementation
 from roleml.core.context import ActorProfile, Context, RoleInstanceID
 from roleml.core.messaging.base import ProcedureInvoker, ProcedureProvider
 from roleml.core.role.base import Role
-from roleml.core.role.elements import ElementImplementation, ConstructStrategy
 from roleml.core.status import Status
 from roleml.extensions.messaging.default.separate import DefaultProcedureInvoker, DefaultProcedureProvider
-from tests.fixtures.roles.features.dynamic import TemporaryStore, Manufacturer, FigureShop
+from tests.fixtures.roles.features.dynamic import TemporaryStore, Manufacturer, FigureShop, Warehouse
 
 
 class RoleDynamicAssignmentTestActor(Actor):
@@ -56,7 +56,8 @@ class RoleDynamicAssignmentDistributedTestCase(unittest.TestCase):
         self.a1 = self.make_actor(p1)
         self.manufacturer = Manufacturer()
         self.a1.add_role('manufacturer', self.manufacturer)
-        self.a1.implement_element('manufacturer', 'store', ElementImplementation(impl=self.temporary_store))
+        self.a1.implement_element(
+            'manufacturer', 'store', ElementImplementation(loader=lambda: self.temporary_store, eager_load=True))
         for p in (p1, p2, p3):
             self.a1.ctx.contacts.add_contact(p)
         self.a1.ctx.relationships.add_to_relationship('manager', RoleInstanceID('Zhang', 'manufacturer'))
@@ -68,8 +69,7 @@ class RoleDynamicAssignmentDistributedTestCase(unittest.TestCase):
         self.a2.add_role('shop', self.shop)
         self.a2.implement_element(
             'shop', 'warehouse',
-            ElementImplementation(constructor_args={'stock': 20}, construct_strategy=ConstructStrategy.ONCE_EAGER,
-                                  destructor=self._save_value))
+            ElementImplementation(loader=lambda: Warehouse(stock=20), unloader=self._save_value, eager_load=True))
         for p in (p1, p2, p3):
             self.a2.ctx.contacts.add_contact(p)
         self.a2.ctx.relationships.add_to_relationship('manager', RoleInstanceID('Zhang', 'manufacturer'))

@@ -1,10 +1,10 @@
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Mapping, Optional
 
 from roleml.core.actor.group.util.collections import TaskResultCollector
 from roleml.core.context import RoleInstanceID
 from roleml.core.role.base import Role
 from roleml.core.role.channels import Event, Task
-from roleml.core.role.elements import Factory
+from roleml.core.role.elements import Element
 from roleml.core.role.types import Message
 from roleml.shared.collections.merger import ValueMerger, KeyValueMerger, DictKeyValueMerger
 
@@ -15,7 +15,7 @@ class CollectiveAggregator(Role):
         super().__init__()
         self.collect_channel = collect_channel
 
-    merger = Factory(Union[ValueMerger, KeyValueMerger], default_constructor=DictKeyValueMerger)
+    merger = Element(ValueMerger | KeyValueMerger, default_factory=DictKeyValueMerger)
 
     aggregation_completed = Event()
 

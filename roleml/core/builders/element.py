@@ -1,164 +1,206 @@
-from io import IOBase
-from typing import Any, Callable, TypedDict, Union, cast
+from collections.abc import Mapping
+from typing import Any, Callable, Concatenate, Generic, Literal, NotRequired, Optional, TypeVar
+from typing_extensions import TypedDict     # for extra_items
 
-from roleml.core.role.elements import ConstructStrategy, ElementImplementation, InitializeStrategy
-from roleml.shared.importing import Descriptor, LoadCompatible, as_definition, load
-
-
-# region initializers
-
-def _initialize_by_self(obj):
-    obj.initialize()
+from roleml.shared.types import P, T
 
 
-_registered_initializers = {
-    'self': lambda: _initialize_by_self
-}   # type: dict[str, Callable[[], Callable[[Any], None]]]
+CallableType = TypeVar('CallableType', bound=Callable)  # each kind of method corresponds to a type of Callable
 
 
-def get_registered_initializer(name: str) -> Callable[[Any], None]:
-    try:
-        return _registered_initializers[name]()
-    except KeyError:
-        raise RuntimeError(f'cannot find initializer named {name}')
+class MethodStore(Generic[CallableType]):
+
+    def __init__(self, category_name: str, init_methods: Optional[Mapping[str, CallableType]] = None):
+        self.category_name = category_name
+        self._store: dict[str, CallableType] = dict(init_methods or {})
+
+    def __getitem__(self, key: str) -> CallableType:
+        try:
+            return self._store[key]
+        except KeyError:
+            raise RuntimeError(f'"{key}" is not a valid {self.category_name} method')
+
+    def __setitem__(self, key: str, value: CallableType):
+        self._store[key] = value
+
+    def get(self, key: str) -> Optional[CallableType]:
+        return self._store.get(key)
 
 
-def register_initializer(name: str, getter: Callable[[], Callable[[Any], None]]):
-    _registered_initializers[name] = getter
+# region built-in loader methods
 
-# endregion
+class DirectUse(Generic[T]):
 
+    def __init__(self, target: T):
+        self.obj = target
 
-# region serializers
-
-def _serialize_by_self(obj, file: IOBase):
-    obj.serialize(file)
-
-
-def get_pickle_serializer():
-    import pickle
-    return pickle.dump
+    def __call__(self) -> T:
+        return self.obj
 
 
-def get_json_serializer():
-    import json
-    return json.dump
+class DirectImport(Generic[T]):
+
+    def __init__(self, target: str):
+        self.path = target
+
+    def __call__(self) -> T:
+        from roleml.shared.importing import load_definition
+        return load_definition(self.path)
 
 
-_registered_serializers = {
-    'self': lambda: _serialize_by_self,
-    'pickle': get_pickle_serializer,
-    'json': get_json_serializer
-}   # type: dict[str, Callable[[], Callable[[Any, IOBase], None]]]
+class Factory(Generic[T]):
 
-
-def get_registered_serializer(name: str) -> Callable[[Any, IOBase], None]:
-    try:
-        return _registered_serializers[name]()
-    except KeyError:
-        raise RuntimeError(f'cannot find serializer named {name}')
-
-
-def register_serializer(name: str, getter: Callable[[], Callable[[Any, IOBase], None]]):
-    _registered_serializers[name] = getter
-
-# endregion
-
-
-# region deserializers
-
-def get_pickle_deserializer():
-    import pickle
-    return pickle.load
-
-
-def get_json_deserializer():
-    import json
-    return json.load
-
-
-_registered_deserializers = {
-    'pickle': get_pickle_deserializer,
-    'json': get_json_deserializer
-}   # type: dict[str, Callable[[], Callable[[IOBase], Any]]]
-
-
-def get_registered_deserializer(name: str) -> Callable[[IOBase], Any]:
-    try:
-        return _registered_deserializers[name]()
-    except KeyError:
-        raise RuntimeError(f'cannot find deserializer named {name}')
-
-
-def register_deserializer(name: str, getter: Callable[[], Callable[[IOBase], Any]]):
-    _registered_deserializers[name] = getter
-
-# endregion
-
-
-ElementImplementationSpec = TypedDict('ElementImplementationSpec', {
-    'class': Descriptor[type],
-    'impl': Union[str, Any],
-    'constructor': LoadCompatible[Callable],
-    'construct_strategy': Union[str, ConstructStrategy],
-    'constructor_args': dict[str, Any],
-    'initializer': LoadCompatible[Callable],
-    'initialize_strategy': Union[str, InitializeStrategy],
-    'serializer': LoadCompatible[Callable],
-    'serializer_destination': str,
-    'deserializer': LoadCompatible[Callable],
-    'deserializer_source': str,
-    'destructor': LoadCompatible[Callable]
-}, total=False)
-
-
-ParsedElementImplementationSpec = TypedDict('ParsedElementImplementationSpec', {
-    'class': type,
-    'impl': object,
-    'constructor': Callable,
-    'construct_strategy': ConstructStrategy,
-    'constructor_args': dict[str, Any],
-    'initializer': Callable,
-    'initialize_strategy': InitializeStrategy,
-    'serializer': Callable,
-    'serializer_destination': str,
-    'deserializer': Callable,
-    'deserializer_source': str,
-    'destructor': Callable
-}, total=False)
-
-
-def load_element_impl_spec(spec: ElementImplementationSpec) -> ElementImplementation:
-    kwargs = cast(dict[str, Any], parse_descriptors(spec))
-    if 'class' in kwargs:
-        kwargs['cls'] = kwargs.pop('class')
-    return ElementImplementation(**kwargs)
-
-
-def parse_descriptors(spec: ElementImplementationSpec) -> ParsedElementImplementationSpec:
-    spec_parsed = spec.copy()
-    if construct_strategy := spec.get('construct_strategy'):
-        if isinstance(construct_strategy, str):
-            spec_parsed['construct_strategy'] = ConstructStrategy[construct_strategy.upper()]
+    def __init__(self, target: str | Callable[..., T], args: Optional[Mapping[str, Any]] = None):
+        if isinstance(target, str):
+            from roleml.shared.importing import load_definition
+            self.factory = load_definition(target)
         else:
-            spec_parsed['construct_strategy'] = construct_strategy
-    if initialize_strategy := spec.get('initialize_strategy'):
-        if isinstance(initialize_strategy, str):
-            spec_parsed['initialize_strategy'] = InitializeStrategy[initialize_strategy.upper()]
+            self.factory = target
+        self.args = args or {}
+
+    def __call__(self) -> T:
+        return self.factory(**self.args)
+
+
+class PickleDeserializer(Generic[T]):
+
+    def __init__(self, target: str):
+        self.target = target
+
+    def __call__(self) -> T:
+        import pickle
+        with open(self.target, 'rb') as f:
+            return pickle.load(f)
+
+
+class JsonDeserializer(Generic[T]):
+
+    def __init__(self, target: str):
+        self.target = target
+
+    def __call__(self) -> T:
+        import json
+        with open(self.target, 'r') as f:
+            return json.load(f)
+
+# endregion
+
+
+loader_methods: MethodStore[Callable[..., Callable[[], Any]]] = MethodStore('loader', {
+    'direct-use': DirectUse,
+    'direct-import': DirectImport,
+    'factory': Factory,
+    'pickle': PickleDeserializer,
+    'json': JsonDeserializer,
+    'default': Factory,
+})
+
+
+# region built-in serializer methods
+
+class PickleSerializer(Generic[T]):
+
+    def __init__(self, target: str, base: Optional[type[T]] = None):
+        self.target = target
+        self.base = base
+
+    def __call__(self, obj: T):
+        if self.base is not None and not isinstance(obj, self.base):
+            raise TypeError(f'pickling of {type(obj)!s} has been disabled')
+        import pickle
+        with open(self.target, 'wb') as file:
+            pickle.dump(obj, file)
+
+
+class JsonSerializer(Generic[T]):
+
+    def __init__(self, target: str, base: Optional[type[T]] = None):
+        self.target = target
+        self.base = base
+
+    def __call__(self, obj: T):
+        if self.base is not None and not isinstance(obj, self.base):
+            raise TypeError(f'{type(obj)!s} cannot be JSON serialized')
+        import json
+        with open(self.target, 'w') as file:
+            json.dump(obj, file)
+
+# endregion
+
+
+serializer_methods: MethodStore[Callable[..., Callable[[Any], None]]] = MethodStore('serializer', {
+    'pickle': PickleSerializer,
+    'json': JsonSerializer,
+})
+
+
+# region built-in initializer methods
+
+class BasicInitializer(Generic[T, P]):
+
+    def __init__(self, target: str | Callable[Concatenate[Optional[T], P], T]):
+        if isinstance(target, str):
+            from roleml.shared.importing import load_definition
+            self.func = load_definition(target)
         else:
-            spec_parsed['initialize_strategy'] = initialize_strategy
-    if cls := spec.get('class'):
-        spec_parsed['class'] = as_definition(cls)
-    if impl := spec.get('impl'):
-        spec_parsed['impl'] = as_definition(impl)
-    if constructor := spec.get('constructor'):
-        spec_parsed['constructor'] = load(constructor, Callable)
-    if initializer := spec.get('initializer'):
-        spec_parsed['initializer'] = load(initializer, Callable, builtin_source_getters=_registered_initializers)
-    if serializer := spec.get('serializer'):
-        spec_parsed['serializer'] = load(serializer, Callable, builtin_source_getters=_registered_serializers)
-    if deserializer := spec.get('deserializer'):
-        spec_parsed['deserializer'] = load(deserializer, Callable, builtin_source_getters=_registered_serializers)
-    if destructor := spec.get('destructor'):
-        spec_parsed['destructor'] = load(destructor, Callable)
-    return cast(ParsedElementImplementationSpec, spec_parsed)
+            self.func = target
+
+    def __call__(self, obj: Optional[T], *args, **kwargs) -> T:
+        return self.func(obj, *args, **kwargs)
+
+
+class FactoryInitializer(Generic[T, P]):
+
+    def __init__(self, target: str | Callable[..., T]):
+        if isinstance(target, str):
+            from roleml.shared.importing import load_definition
+            self.factory = load_definition(target)
+        else:
+            self.factory = target
+
+    def __call__(self, _: Optional[T], *args, **kwargs) -> T:
+        return self.factory(*args, **kwargs)
+
+# endregion
+
+
+initializer_methods: MethodStore[Callable[..., Callable[Concatenate[Optional[Any], ...], Any]]] = MethodStore('initializer', {
+    'basic': BasicInitializer,
+    'factory': FactoryInitializer,
+})
+
+
+# region built-in unloader methods
+
+class BasicUnloader(Generic[T]):
+
+    def __init__(self, target: str | Callable[[T], None]):
+        if isinstance(target, str):
+            from roleml.shared.importing import load_definition
+            self.func = load_definition(target)
+        else:
+            self.func = target
+
+    def __call__(self, obj: T):
+        self.func(obj)
+
+# endregion
+
+
+unloader_methods: MethodStore[Callable[..., Callable[[Any], None]]] = MethodStore('unloader', {
+    'basic': BasicUnloader,
+})
+
+
+ElementImplementationComponentSpec = TypedDict(
+    'ElementImplementationComponentSpec',
+    {'method': NotRequired[str]}, extra_items=Any
+)
+
+
+class ElementImplementationSpec(TypedDict, total=False):
+    loader: ElementImplementationComponentSpec
+    serializer: ElementImplementationComponentSpec
+    initializer: ElementImplementationComponentSpec
+    unloader: ElementImplementationComponentSpec
+    eager_load: bool

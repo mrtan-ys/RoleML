@@ -1,10 +1,10 @@
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from roleml.core.actor.group.makers import Relationship
 from roleml.core.actor.group.util.collections import TaskResultCollector
 from roleml.core.role.base import Role
 from roleml.core.role.channels import Service, Task, Event
-from roleml.core.role.elements import Factory
+from roleml.core.role.elements import Element
 from roleml.shared.collections.merger import ValueMerger, KeyValueMerger, DictKeyValueMerger
 
 
@@ -33,7 +33,7 @@ class LayeredCollectiveAggregator(Role):
     step_completed = Event()
     aggregation_completed = Event()
 
-    merger = Factory(Union[ValueMerger, KeyValueMerger], default_constructor=DictKeyValueMerger)
+    merger = Element(ValueMerger | KeyValueMerger, default_factory=DictKeyValueMerger)
 
     @Task(expand=True)
     def aggregate(self, _, num_steps: Optional[int] = None):

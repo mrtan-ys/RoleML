@@ -4,35 +4,44 @@ client.*:   # node name (RegEx)
     class: ring_all_reduce.roles.trainer.MyGradientsTrainer
     impl:
       model:
-        class: ring_all_reduce.workload.lenet_5.MyLeNet5RGBModel
-        constructor_args:
-          lr: 0.01
-          device: cpu
-          num_threads: 4
+        loader:
+          method: factory
+          target: ring_all_reduce.workload.lenet_5.MyLeNet5RGBModel
+          args:
+            lr: 0.01
+            device: cpu
+            num_threads: 4
       dataset:
-        constructor_args:
-          dataset:
-            type: ring_all_reduce.workload.cifar_10.MyCiFar10SlicedDataset
-            options:
-              root: /home/roleml/datasets/cifar-10/sliced
-              index: $c[0-9]
-          converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
-          sampler: sequential
-          batch_size: 32
-          combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
+        loader:
+          method: factory
+          target: roleml.library.workload.datasets.views.DatasetViewFactory
+          args:
+            dataset:
+              type: ring_all_reduce.workload.cifar_10.MyCiFar10SlicedDataset
+              options:
+                root: /home/roleml/datasets/cifar-10/sliced
+                index: $c[0-9]
+            converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
+            sampler: sequential
+            batch_size: 32
+            combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
   aggregator:
     class: ring_all_reduce.roles.aggregator.AllReduceAggregator
     options:
-      client_id: $[0-9]
+      client_id: $c[0-9]
       num_clients: 10
       collect_channel: 'compute-gradients'
       apply_update_channel: 'apply-gradients'
       source_relationship: 'trainer'
     impl:
       split-op:
-        impl: ring_all_reduce.workload.ops.split_gradients
+        loader:
+          method: direct-import
+          target: ring_all_reduce.workload.ops.split_gradients
       recover-op:
-        impl: torch.cat
+        loader:
+          method: direct-import
+          target: torch.cat
 
 global:
   coordinator:
@@ -41,21 +50,28 @@ global:
       num_clients: 10
     impl:
       model:
-        class: ring_all_reduce.workload.lenet_5.MyLeNet5RGBModel
-        constructor_args:
-          lr: 0.01
-          device: cpu
-          num_threads: 4
+        loader:
+          method: factory
+          target: ring_all_reduce.workload.lenet_5.MyLeNet5RGBModel
+          args:
+            lr: 0.01
+            device: cpu
+            num_threads: 4
       dataset_test:
-        constructor_args:
-          dataset:
-            type: ring_all_reduce.workload.cifar_10.MyCiFar10Dataset
-            options:
-              root: /home/roleml/datasets/cifar-10
-              part: test
-          converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
-          sampler: sequential
-          combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
-        construct_strategy: ONCE_EAGER
+        loader:
+          method: factory
+          target: roleml.library.workload.datasets.views.DatasetViewFactory
+          args:
+            dataset:
+              type: ring_all_reduce.workload.cifar_10.MyCiFar10Dataset
+              options:
+                root: /home/roleml/datasets/cifar-10
+                part: test
+            converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
+            sampler: sequential
+            combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
+        eager_load: True
       init-op:
-        impl: ring_all_reduce.workload.ops.he_initialization
+        loader:
+          method: direct-import
+          target: ring_all_reduce.workload.ops.he_initialization

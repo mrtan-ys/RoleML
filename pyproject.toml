@@ -12,7 +12,7 @@ dependencies = [
     'fasteners >= 0.19',            # for concurrent access (reader-writer lock)
     'PyYAML',                       # for YAML config support
     # dependencies for development
-    'typing_extensions >= 4.4.0',   # for @override, generic TypedDict (and Required/NotRequired) and NamedTuple
+    'typing_extensions >= 4.13.0',  # for @override, TypedDict with extra_items, TypeVar/ParamSpec defaults
 ]
 readme = 'README.md'
 classifiers = [

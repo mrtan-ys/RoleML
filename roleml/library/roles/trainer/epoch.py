@@ -7,7 +7,6 @@ from roleml.core.role.channels import Service, Task, Event
 from roleml.core.role.elements import Element
 from roleml.library.roles.trainer.base import BaseModelMaintainer
 from roleml.library.workload.datasets.bases import IterableDataset
-from roleml.library.workload.datasets.views import DatasetViewFactory
 from roleml.library.workload.models.bases import TrainableModel
 
 
@@ -37,14 +36,14 @@ class EpochTrainer(BaseModelMaintainer):
 
     # elements model and dataset_test inherited from base class
 
-    dataset = Element(IterableDataset, default_constructor=DatasetViewFactory)
+    dataset = Element(IterableDataset)
 
-    planner = Element(TrainingPlanner, default_constructor=FixedTrainingPlanner)
+    planner = Element(TrainingPlanner, default_factory=FixedTrainingPlanner)
 
     @Service(expand=True)
     def get_data_size(self, _):
         with self.lock:
-            dataset = self.dataset()
+            dataset = self.dataset.get()
             if isinstance(dataset, Sized):  # including the default DatasetView
                 return len(dataset)
             raise TypeError('cannot obtain dataset size from this Trainer')
@@ -53,16 +52,16 @@ class EpochTrainer(BaseModelMaintainer):
     def train(self, _, num_epochs: int = 1, **options):
         with self.lock:
             self.train_impl(num_epochs, **options)
-            return self.model().get_params()
+            return self.model.get().get_params()
     
     @Task(expand=True)
     def train2(self, _, num_epochs: int = 1, **options) -> dict[str, Any]:
         with self.lock:
             metrics = self.train_impl(num_epochs, **options)
-            dataset = self.dataset()
+            dataset = self.dataset.get()
             data_size = len(dataset) if isinstance(dataset, Sized) else 0
             return {
-                'update': self.model().get_params(),
+                'update': self.model.get().get_params(),
                 'data_size': data_size,
                 'metrics': metrics
             }
@@ -72,8 +71,8 @@ class EpochTrainer(BaseModelMaintainer):
     def train_impl(self, num_epochs: int, **options) -> dict[str, Any]:
         with self.lock:
             plan = iter(self.planner().make_plan(num_epochs, **options))
-            model = self.model()    # type: TrainableModel
-            dataset = self.dataset()
+            model = self.model.get()    # type: TrainableModel
+            dataset = self.dataset.get()
             metrics = {}
             for _ in range(num_epochs):
                 hyperparams = next(plan)

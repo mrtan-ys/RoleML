@@ -12,8 +12,7 @@ class AdAggregator(Role):
         super().__init__()
         self.model_lock = Lock()
 
-    merge_op: Element[Callable[[Any, Any, int], Any]] \
-        = Element(Callable, default_impl=lambda a, b, cnt: (a + b) / cnt)     # type: ignore
+    merge_op = Element(Callable[[Any, Any, int], Any], default=lambda a, b, cnt: (a + b) / cnt)
     merge_completed = Event()
 
     @Task(expand=True)

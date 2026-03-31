@@ -25,10 +25,15 @@ class ElementSpecialPartAliasGettingTestCase(unittest.TestCase):
                     'class': DataHolder,
                     'impl': {
                         'data': {
-                            'impl': self.data,
-                            'serializer': 'json',
-                            'serializer_destination': filename,
-                            'serializer_mode': 'text',
+                            'loader': {
+                                'method': 'direct-use',
+                                'target': self.data,
+                            },
+                            'serializer': {
+                                'method': 'json',
+                                'target': filename,
+                            },
+                            'eager_load': True,     # ensure loader is in effect
                         }
                     }
                 }

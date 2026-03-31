@@ -3,9 +3,9 @@ import unittest
 from threading import Thread
 
 from roleml.core.actor.group.impl.null import CollectiveImplementorDisabled
+from roleml.core.actor.manager.bases.elements import ElementImplementation
 from roleml.core.context import ActorProfile, Context, RoleInstanceID
 from roleml.core.messaging.null import ProcedureInvokerDisabled, ProcedureProviderDisabled
-from roleml.core.role.elements import ElementImplementation
 from roleml.core.role.exceptions import CallerError
 from roleml.core.role.types import Message
 from tests.fixtures.actors.basic import TestActor
@@ -64,8 +64,11 @@ class RoleDynamicAssignmentTestCase(unittest.TestCase):
 
         shop = FigureShop(price=1500)
         a1.add_role('shop', shop)
-        a1.implement_element('shop', 'warehouse',
-                             ElementImplementation(destructor=self._save_value, constructor_args={'stock': 20}))
+        a1.implement_element(
+            'shop', 'warehouse',
+            ElementImplementation(loader=lambda: Warehouse(stock=20), unloader=self._save_value, eager_load=True))
+            # ElementImplementation(loader=Factory(Warehouse, args={'stock': 20}), unloader=self._save_value))
+            # (from roleml.core.builders.element import Factory)
         Thread(target=a1.run).start()
 
         p2 = ActorProfile('Li', '127.0.0.1')
@@ -85,7 +88,7 @@ class RoleDynamicAssignmentTestCase(unittest.TestCase):
         # then start it in a2, restoring the state
         new_shop = FigureShop(price=1000)
         a2.add_role('shop', new_shop)
-        a2.implement_element('shop', 'warehouse', ElementImplementation(constructor=self._load_value_maker(Warehouse)))
+        a2.implement_element('shop', 'warehouse', ElementImplementation(loader=self._load_value_maker(Warehouse), eager_load=True))
 
         # check
         self.assertEqual(new_shop.stock, 20)

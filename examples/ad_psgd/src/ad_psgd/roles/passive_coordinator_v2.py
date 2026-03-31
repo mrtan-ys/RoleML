@@ -1,8 +1,5 @@
-from typing import Callable
-
 from roleml.core.role.base import Role
 from roleml.core.role.channels import EventHandler, Task
-from roleml.core.role.elements import Element
 
 
 class AdCoordinator(Role):
@@ -12,8 +9,6 @@ class AdCoordinator(Role):
         self.round = -1
         self.finish_peer_num = 0
         self.is_finished = False
-
-    merge_op = Element(Callable, default_impl=lambda a, b, cnt: (a + b) / cnt)
 
     @Task(expand=True)
     def start(self, _, num_rounds: int):

@@ -4,14 +4,13 @@ from roleml.core.role.base import Role
 from roleml.core.role.channels import Event, Task
 from roleml.core.role.elements import Element
 from roleml.library.workload.datasets.bases import IterableDataset
-from roleml.library.workload.datasets.views import DatasetViewFactory
 from roleml.library.workload.models.bases import TestableModel
 
 
 class FLCoordinator(Role):
 
     model = Element(TestableModel)  # type: Element[TestableModel]
-    dataset = Element(IterableDataset, default_constructor=DatasetViewFactory, optional=True)
+    dataset = Element(IterableDataset, optional=True)
     # Note: dataset type can be relaxed to DataStreams (only requires __iter__)
 
     fl_completed = Event()

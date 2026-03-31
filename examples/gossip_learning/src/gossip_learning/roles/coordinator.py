@@ -16,8 +16,7 @@ class GLCoordinator(Role):
 
     gl_completed = Event()
 
-    merge_op: Element[Callable[[Any, Any, int], Any]] \
-        = Element(Callable, default_impl=lambda a, b, cnt: (a + b) / cnt)   # type: ignore
+    merge_op = Element(Callable[[Any, Any, int], Any], default=lambda a, b, cnt: (a + b) / cnt)
 
     @EventHandler('aggregator', 'gossip-accepted', expand=True)
     def on_aggregator_gossip_accepted(self, *_, **__):
@@ -29,7 +28,7 @@ class GLCoordinator(Role):
             self.logger.debug(f'round {self.current_round} fetching gossip data of {count} items')
             # average with local model and apply
             local_model = self.call('trainer', 'get-model')
-            averaged_model = self.merge_op()(local_model, data, count + 1)
+            averaged_model = self.merge_op.get()(local_model, data, count + 1)
             self.call('trainer', 'apply-update', payloads={'update': averaged_model})
             # train for another epoch
             new_update = self.call_task('trainer', 'train').result()

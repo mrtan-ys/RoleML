@@ -2,7 +2,6 @@ from roleml.core.role.base import Role
 from roleml.core.role.channels import Task, Event
 from roleml.core.role.elements import Element
 from roleml.library.workload.datasets.bases import DataStreams
-from roleml.library.workload.datasets.views import DatasetViewFactory
 from roleml.library.workload.models.bases import TestableModel
 
 
@@ -11,7 +10,7 @@ class ELCoordinator(Role):
     ROOT_RELATIONSHIP_NAME = 'root'
 
     model = Element(TestableModel)
-    dataset = Element(DataStreams, default_constructor=DatasetViewFactory)
+    dataset = Element(DataStreams)
 
     round_completed = Event()
     el_completed = Event()
@@ -19,8 +18,8 @@ class ELCoordinator(Role):
     @Task(expand=True)
     def run(self, _, num_rounds: int = 10):
         self.logger.info(f'start EL run, num of rounds is {num_rounds}')
-        model = self.model()        # type: TestableModel
-        dataset = self.dataset()    # type: DataStreams     # test dataset
+        model = self.model.get()        # type: TestableModel
+        dataset = self.dataset.get()    # type: DataStreams     # test dataset
         for i in range(num_rounds):
             # 1. dispatch, propagate to leaf nodes (trainers)
             self.call(ELCoordinator.ROOT_RELATIONSHIP_NAME, 'dispatch', payloads={'update': model.get_params()})

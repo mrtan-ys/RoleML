@@ -20,24 +20,29 @@ roles:
     class: federated_learning.roles.trainer.MyEpochTrainer
     impl:
       model:
-        class: federated_learning.workload.lenet_5.MyLeNet5RGBModel
-        constructor_args:
-          lr: 0.01
-          device: cpu
-          num_threads: 2
-        construct_strategy: once_eager
+        loader:
+          method: factory
+          target: federated_learning.workload.lenet_5.MyLeNet5RGBModel
+          args:
+            lr: 0.01
+            device: cpu
+            num_threads: 2
+        eager_load: True
       dataset:
-        constructor_args:
-          dataset:
-            type: federated_learning.workload.cifar_10.MyCiFar10SlicedDataset
-            options:
-              root: /home/roleml/datasets/cifar-10/sliced
-              index: 0
-          converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
-          sampler: sequential
-          batch_size: 32
-          combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
-        construct_strategy: once_eager
+        loader:
+          method: factory
+          target: roleml.library.workload.datasets.views.DatasetViewFactory
+          args:
+            dataset:
+              type: federated_learning.workload.cifar_10.MyCiFar10SlicedDataset
+              options:
+                root: /home/roleml/datasets/cifar-10/sliced
+                index: 0
+            converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
+            sampler: sequential
+            batch_size: 32
+            combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
+        eager_load: True
   # make sure the initiator is deployed last
   initiator:
     class: federated_learning.roles.handshake.client.MyClientInitiator

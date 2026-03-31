@@ -32,22 +32,29 @@ roles:
     class: federated_learning.roles.fedavg.aggregator.CollectiveAggregator
     impl:
       merger:
-        class: roleml.library.workload.util.collections.merger.torch.TorchStateDictAverager
+        loader:
+          method: factory
+          target: roleml.library.workload.util.collections.merger.torch.TorchStateDictAverager
   coordinator:
     class: federated_learning.roles.coordinator.FLCoordinator
     impl:
       model:
-        class: federated_learning.workload.lenet_5.MyLeNet5RGBModel
+        loader:
+          method: factory
+          target: federated_learning.workload.lenet_5.MyLeNet5RGBModel
       dataset:
-        constructor_args:
-          dataset:
-            type: federated_learning.workload.cifar_10.MyCiFar10Dataset
-            options:
-              root: /home/roleml/datasets/cifar-10
-              part: test
-          converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
-          sampler: sequential
-          combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
+        loader:
+          method: factory
+          target: roleml.library.workload.datasets.views.DatasetViewFactory
+          args:
+            dataset:
+              type: federated_learning.workload.cifar_10.MyCiFar10Dataset
+              options:
+                root: /home/roleml/datasets/cifar-10
+                part: test
+            converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
+            sampler: sequential
+            combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
   client-selector:
     class: federated_learning.roles.client_selector.ClientSelector
   configurator:

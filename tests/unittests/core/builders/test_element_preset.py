@@ -1,7 +1,7 @@
 import json
+import unittest
 from pathlib import Path
 from typing import cast
-import unittest
 
 from roleml.core.builders.actor import ActorBootstrapSpec
 from roleml.core.builders.role import RoleBuilder
@@ -26,7 +26,10 @@ class ElementPresetMechanismTestCase(unittest.TestCase):
             "tests.fixtures.roles.features.element.DataHolder": {
                 'elements': {
                     'data': {
-                        'impl': self.DEFAULT_OBJECT
+                        'loader': {
+                            'method': 'direct-use',
+                            'target': self.DEFAULT_OBJECT,
+                        }
                     }
                 },
             }
@@ -45,7 +48,10 @@ class ElementPresetMechanismTestCase(unittest.TestCase):
     def test_element_preset_conflict_override(self):
         self.base_config['roles']['data-holder']['impl'] = {
             'data': {
-                'impl': self.ALTERED_OBJECT
+                'loader': {
+                    'method': 'direct-use',
+                    'target': self.ALTERED_OBJECT,
+                }
             }
         }
         self.builder.load_config(self.base_config)
@@ -57,7 +63,10 @@ class ElementPresetMechanismTestCase(unittest.TestCase):
     def test_element_preset_conflict_preset(self):
         self.base_config['roles']['data-holder']['impl'] = {
             'data': {
-                'impl': self.ALTERED_OBJECT
+                'loader': {
+                    'method': 'direct-use',
+                    'target': self.ALTERED_OBJECT,
+                }
             }
         }
         RoleBuilder.update_element_preset('tests.fixtures.roles.features.element.DataHolder', on_conflict='preset')
@@ -70,7 +79,10 @@ class ElementPresetMechanismTestCase(unittest.TestCase):
     def test_element_preset_conflict_preset_2(self):
         self.base_config['roles']['data-holder']['impl'] = {
             'data': {
-                'impl': self.ALTERED_OBJECT
+                'loader': {
+                    'method': 'direct-use',
+                    'target': self.ALTERED_OBJECT,
+                }
             }
         }
         self.base_config['element_preset']['tests.fixtures.roles.features.element.DataHolder']['on_conflict'] = 'preset'
@@ -83,7 +95,10 @@ class ElementPresetMechanismTestCase(unittest.TestCase):
     def test_element_preset_conflict_error(self):
         self.base_config['roles']['data-holder']['impl'] = {
             'data': {
-                'impl': self.ALTERED_OBJECT
+                'loader': {
+                    'method': 'direct-use',
+                    'target': self.ALTERED_OBJECT,
+                }
             }
         }
         RoleBuilder.update_element_preset('tests.fixtures.roles.features.element.DataHolder', on_conflict='error')

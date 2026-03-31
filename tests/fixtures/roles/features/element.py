@@ -9,7 +9,7 @@ class DataHolder(Role):
 
     @Service
     def get_data(self, caller, args, payloads):     # noqa: unused arguments
-        return self.data()
+        return self.data.get()
 
 
 class DataFetcher(Role):

@@ -28,13 +28,14 @@ class FigureShop(Role):
         super().__init__()
         self._price = price
 
-    warehouse = Element(Warehouse, default_constructor=Warehouse)
+    warehouse = Element(Warehouse, default_factory=Warehouse)
+    # note that if using default_factory, it will be called with no args
 
     @Service(expand=True)
     def purchase(self, _, money: int):
         if money < self._price:
             raise ValueError('Money not enough!')
-        self.warehouse().take()
+        self.warehouse.get().take()
         return True
 
     @Service(expand=True)
@@ -43,7 +44,7 @@ class FigureShop(Role):
 
     @property
     def stock(self):
-        return self.warehouse().stock
+        return self.warehouse.get().stock
 
 
 class FigureBuyer(Role):
@@ -87,19 +88,22 @@ class TemporaryStore:
 
 class Manufacturer(Role):
 
-    store = Element(TemporaryStore, default_constructor=TemporaryStore)
+    store = Element(TemporaryStore, default_factory=TemporaryStore)
 
     def assign_shop(self, actor_name: str, instance_name: str, value: Optional[int] = None):
         target = RoleInstanceID(actor_name, 'actor')
-        real_value = self.store().fetch(value)
+        real_value = self.store.get().fetch(value)
         self.call_task(target, 'assign-role', args={
             'name': instance_name,
             'spec': {
                 'class': 'tests.fixtures.roles.features.dynamic.FigureShop',
                 'impl': {
                     'warehouse': {
-                        'class': 'tests.fixtures.roles.features.dynamic.Warehouse',
-                        'constructor_args': {'stock': real_value}
+                        'loader': {
+                            'method': 'factory',
+                            'target': 'tests.fixtures.roles.features.dynamic.Warehouse',
+                            'args': {'stock': real_value}
+                        }
                     }
                 }
             }

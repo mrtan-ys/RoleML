@@ -1,96 +1,57 @@
-from dataclasses import dataclass, field
-from enum import Enum, auto
-from io import IOBase
-from typing import Any, Callable, Generic, Mapping, Optional, Literal
+from dataclasses import dataclass, KW_ONLY
+from types import UnionType
+from typing import Any, Callable, Concatenate, Generic, Optional
+from typing_extensions import ParamSpec
 
 from roleml.shared.types import T
 
-__all__ = ['ConstructStrategy', 'InitializeStrategy', 'Element', 'Factory', 'ElementImplementation']
+__all__ = ['Element', 'InitializationParams']
 
 
-class ConstructStrategy(Enum):
-    ONCE = auto()
-    ONCE_EAGER = auto()
-    EVERY_CALL = auto()
-    DEFAULT = ONCE
-
-
-class InitializeStrategy(Enum):
-    ONCE = auto()
-    EVERY_CALL = auto()
-    DEFAULT = ONCE
+InitializationParams = ParamSpec('InitializationParams', default=...)   # mainly for type hints
+IsInstanceArg = type[Any] | UnionType | tuple["IsInstanceArg", ...]
 
 
 @dataclass
-class Element(Generic[T]):
+class Element(Generic[T, InitializationParams]):
 
-    cls: type[T]
-    default_impl: Optional[T] = None
+    cls: type[T]    # TODO is it better to use typing.TypeForm?
 
-    default_constructor: Optional[Callable[..., T]] = None
-    default_construct_strategy: ConstructStrategy = ConstructStrategy.DEFAULT
-    default_constructor_args: Optional[Mapping[str, Any]] = None
+    default: Optional[T] = None
+    default_factory: Optional[Callable[[], T]] = None   # higher priority
+    default_initializer: Optional[Callable[Concatenate[Optional[T], InitializationParams], T]] = None
 
-    default_initializer: Optional[Callable[[T], None]] = None
-    default_initialize_strategy: InitializeStrategy = InitializeStrategy.DEFAULT
+    _: KW_ONLY
 
-    default_serializer: Optional[Callable[[T, IOBase], None]] = None
-    default_serializer_mode: Literal['binary', 'text'] = 'binary'
+    optional: bool = False
 
-    default_deserializer: Optional[Callable[[IOBase], T]] = None
-    default_deserializer_mode: Literal['binary', 'text'] = 'binary'
-
-    default_destructor: Optional[Callable[[T], None]] = None
-
-    optional: bool = False      # if True, will not issue a warning if element is not implemented at RUNNING status
-
-    type_check: bool = False
+    type_check: bool = False    # disabled by default to prevent invalid isinstance() calls
+    type_check_fallback: Optional[IsInstanceArg] = None
 
     @property
     def implemented(self) -> bool:
-        return False
+        raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`
 
-    def __call__(self, *args, **kwargs) -> T:
-        raise RuntimeError(f'the element typed {self.cls.__name__} is not implemented')
+    def load(self) -> T:
+        raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`
+
+    def __call__(self) -> T:
+        return self.load()
+
+    def unload(self):
+        raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`
+
+    def get(self) -> T:
+        raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`
+
+    require_serializable: bool = False
 
     @property
     def serializable(self) -> bool:
-        raise RuntimeError(f'the element typed {self.cls.__name__} is not implemented')
+        raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`
 
-    @property
-    def deserializable(self) -> bool:
-        raise RuntimeError(f'the element typed {self.cls.__name__} is not implemented')
+    def serialize(self):
+        raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`
 
-    def reset(self):
-        raise RuntimeError(f'the element typed {self.cls.__name__} is not implemented')
-
-
-@dataclass
-class Factory(Element, Generic[T]):
-
-    # lesson learnt: type annotation is required here in order to override base class
-    default_construct_strategy: ConstructStrategy = ConstructStrategy.EVERY_CALL
-
-
-@dataclass
-class ElementImplementation(Generic[T]):
-
-    cls: type[T] = object   # type: ignore
-    impl: Optional[T] = None
-
-    constructor: Optional[Callable[..., T]] = None
-    construct_strategy: Optional[ConstructStrategy] = None
-    constructor_args: Mapping[str, Any] = field(default_factory=dict)
-
-    initializer: Optional[Callable[[T], None]] = None
-    initialize_strategy: Optional[InitializeStrategy] = None
-
-    serializer: Optional[Callable[[T, IOBase], None]] = None
-    serializer_destination: Optional[str] = None
-    serializer_mode: Optional[Literal['binary', 'text']] = None
-
-    deserializer: Optional[Callable[[IOBase], T]] = None
-    deserializer_source: Optional[str] = None
-    deserializer_mode: Optional[Literal['binary', 'text']] = None
-
-    destructor: Optional[Callable[[T], None]] = None
+    def initialize(self, *args: InitializationParams.args, **kwargs: InitializationParams.kwargs) -> T:
+        raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`

@@ -5,7 +5,7 @@ from roleml.core.actor.group.util.collections import TaskResultCollector
 from roleml.core.context import RoleInstanceID
 from roleml.core.role.base import Role
 from roleml.core.role.channels import Task, Event
-from roleml.core.role.elements import Factory
+from roleml.core.role.elements import Element
 from roleml.core.role.types import Message
 from roleml.library.workload.util.collections.merger.base import WeightedMerger, DefaultWeightedMerger
 from roleml.shared.collections.merger import DictKeyValueMerger
@@ -18,7 +18,9 @@ class WeightedCollectiveAggregator(Role):
         self.collect_channel = collect_channel
         self.weight_source_channel = weight_source_channel
 
-    merger = Factory(WeightedMerger, default_constructor=DefaultWeightedMerger)
+    merger: Element[WeightedMerger, [dict[Any, int | float]]] = Element(
+        WeightedMerger,
+        default_initializer=lambda _, weights: DefaultWeightedMerger(weights))
 
     aggregation_completed = Event()
 
@@ -31,7 +33,7 @@ class WeightedCollectiveAggregator(Role):
         self.call_group(group, self.weight_source_channel, on_result=merger.push)
         weights = merger.merge()
         # then collect result and merge
-        merger = TaskResultCollector(group, merger=self.merger(weights))
+        merger = TaskResultCollector(group, merger=self.merger.initialize(weights))
         self.call_task_group(
             group, self.collect_channel,
             message_map={RoleInstanceID(*source): Message(options) for source, options in sources_and_options.items()},

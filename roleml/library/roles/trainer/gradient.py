@@ -5,7 +5,6 @@ from roleml.core.role.channels import Service, Task, Event
 from roleml.core.role.elements import Element
 from roleml.library.roles.trainer.base import BaseModelMaintainer
 from roleml.library.workload.datasets.bases import IterableDataset
-from roleml.library.workload.datasets.views import DatasetViewFactory
 from roleml.library.workload.models.bases import GradientsOperableModel
 
 
@@ -20,7 +19,7 @@ class GradientsTrainer(BaseModelMaintainer):
     # element dataset_test inherited from base class
 
     model: Element[GradientsOperableModel] = Element(GradientsOperableModel)    # type: ignore
-    dataset = Element(IterableDataset, default_constructor=DatasetViewFactory)
+    dataset = Element(IterableDataset)
 
     gradient_computed = Event()
 
@@ -30,17 +29,17 @@ class GradientsTrainer(BaseModelMaintainer):
             try:
                 data_batch = next(self.dataset_iterator)    # type: ignore
             except (StopIteration, TypeError):
-                self.dataset_iterator = iter(self.dataset())
+                self.dataset_iterator = iter(self.dataset.get())
                 data_batch = next(self.dataset_iterator)
             # data_batch should contain x and y
-            metrics, gradients = self.model().compute_gradients(data_batch)
+            metrics, gradients = self.model.get().compute_gradients(data_batch)
             self.gradient_computed.emit(args=metrics)
             return gradients
-    
+
     gradient_applied = Event()
 
     @Service(expand=True)
     def apply_gradients(self, _, update: Any):
         with self.lock:
-            self.model().apply_gradients(update)
+            self.model.get().apply_gradients(update)
             self.gradient_applied.emit()

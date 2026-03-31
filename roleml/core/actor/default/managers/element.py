@@ -1,174 +1,152 @@
 import logging
-from io import IOBase
 from threading import RLock
-from typing import Any, Generic, Optional
+from typing import Generic, Optional
 
-from roleml.core.actor.manager.bases.elements import BaseElementManager
+from roleml.core.actor.manager.bases.elements import BaseElementManager, ElementImplementation, SetupWithElement
 from roleml.core.role.base import Role
-from roleml.core.role.elements import Element, ConstructStrategy, InitializeStrategy, ElementImplementation
+from roleml.core.role.elements import Element, InitializationParams
 from roleml.core.status import Status
 from roleml.shared.types import T
 
 __all__ = ['ElementInstance', 'ElementManager']
 
 
-class ElementInstance(Generic[T]):
+class ElementInstance(Generic[T, InitializationParams]):
 
-    __slots__ = ('logger', 'name', 'cls', 'type_check', 'constructor', 'construct_strategy', 'constructor_args',
-                 'initializer', 'initialize_strategy', '_initialized', '_instance',
-                 'serializer', 'serializer_destination', 'serializer_mode',
-                 'deserializer', 'deserializer_source', 'deserializer_mode',
-                 'destructor')
-
-    def __init__(self, name: str, element: Element[T], impl: ElementImplementation[T]):
-        self.logger = logging.getLogger('roleml.managers.element')
+    def __init__(self, name: str, element: Element[T, InitializationParams], impl: ElementImplementation[T]):
         self.name = name
+        self.logger = logging.getLogger('roleml.managers.element')
+
+        self._instance: Optional[T] = None
+
+        self.cls = element.cls
+        self.default = element.default
+        self.default_factory = element.default_factory
+        self.optional = element.optional
         self.type_check = element.type_check
-        if impl.cls not in (Any, object, None):
-            if self.type_check and (not isinstance(impl.cls, type) or not issubclass(impl.cls, self.cls)):
-                raise TypeError(f"incorrect type for element implementation of ({self.name}), "
-                                f"expected {self.cls} or subclass, declared {impl.cls}")
-            self.cls = impl.cls
-        else:
-            self.cls = element.cls
+        self.type_check_fallback = element.type_check_fallback
+        self.require_serializable = element.require_serializable
 
-        # constructor
-        if impl.constructor is not None:
-            self.constructor = impl.constructor
-        elif impl.cls not in (Any, object, None):
-            self.constructor = impl.cls
-        elif element.default_constructor is not None:
-            self.constructor = element.default_constructor
-        else:
-            self.constructor = None     # to use element.cls, set it as element.default_constructor
-        self.construct_strategy = impl.construct_strategy or element.default_construct_strategy
-        self.constructor_args = impl.constructor_args or element.default_constructor_args or {}
+        if impl.eager_load:
+            if impl.loader is not None:
+                self._instance = impl.loader()
+            else:
+                if element.default_factory is not None:
+                    self._instance = element.default_factory()
+                elif element.default is not None:
+                    self._instance = element.default
+            self.attempt_type_check_if_enabled()
 
-        # initializer
-        self.initializer = impl.initializer or element.default_initializer
-        self.initialize_strategy = impl.initialize_strategy or element.default_initialize_strategy
+        self.loader = impl.loader if impl.loader is not None else element.default_factory
+        self.serializer = impl.serializer
+        self.initializer = impl.initializer if impl.initializer is not None else element.default_initializer
+        self.unloader = impl.unloader
 
-        # serializer
-        self.serializer = impl.serializer or element.default_serializer
-        self.serializer_destination = impl.serializer_destination
-        self.serializer_mode = impl.serializer_mode or element.default_serializer_mode
+        for component in (self.loader, self.serializer, self.initializer, self.unloader):
+            if isinstance(component, SetupWithElement):
+                component.setup(element)
+        
+        if element.require_serializable and not self.serializable:
+            raise RuntimeError(f'element {self.name} is not serializable as required')
 
-        # deserializer
-        self.deserializer = impl.deserializer or element.default_deserializer
-        self.deserializer_source = impl.deserializer_source
-        self.deserializer_mode = impl.deserializer_mode or element.default_deserializer_mode
+    @property
+    def implemented(self) -> bool:
+        return (self._instance is not None) or (self.loader is not None) or (self.initializer is not None)
 
-        # destructor
-        self.destructor = impl.destructor or element.default_destructor
+    def attempt_type_check_if_enabled(self):
+        if self.type_check and self._instance is not None:
+            expected_type = self.type_check_fallback if self.type_check_fallback is not None else self.cls
+            if not isinstance(self._instance, expected_type):
+                raise TypeError(
+                    f'invalid object type for element {self.name}, expected {self.cls!s}, got {type(self._instance)!s}')
 
-        self._initialized = False
-        if impl.impl is not None:
-            self._instance = impl.impl
-        elif self.deserializer and self.deserializer_source:
-            self.deserialize()
-        elif element.default_impl is not None:
-            self._instance = element.default_impl
-        else:
+    def load(self) -> T:
+        if self.loader is None:
+            raise RuntimeError(f"no way to load new object for element {self.name}")
+        return self.__load()
+
+    def __load(self) -> T:
+        assert self.loader is not None
+        if self._instance is not None:
+            if self.unloader is not None:
+                self.unloader(self._instance)
             self._instance = None
-
-        # handle eager load (skipped when impl is provided or object is deserialized from file)
-        if (self.construct_strategy == ConstructStrategy.ONCE_EAGER) and (self._instance is None):
-            self.construct()
-
-    @property
-    def read_mode(self):
-        return 'r' if self.deserializer_mode == 'text' else 'rb'
-
-    @property
-    def write_mode(self):
-        return 'w' if self.serializer_mode == 'text' else 'wb'
-
-    def construct(self, *args, **kwargs):
-        if not self.constructor:
-            raise RuntimeError(f"constructor is not provided for element ({self.name})")
-        self.reset()     # destruct previous instance (if any)
-        if args or kwargs:
-            self._instance = self.constructor(*args, **kwargs)
-        else:
-            self._instance = self.constructor(**self.constructor_args)
-        if self.type_check and not isinstance(self._instance, self.cls):
-            raise TypeError(f"incorrect type for element implementation of ({self.name}), "
-                            f"expected {self.cls}, constructed {type(self._instance)}")
-        self._initialized = False
-
-    def serialize(self, file: Optional[IOBase] = None):
-        if file:
-            self._serialize(file)
-        else:
-            if not self.serializer_destination:
-                raise RuntimeError(f'serializer destination is not provided for element {self.name}')
-            with open(self.serializer_destination, self.write_mode) as file:
-                # file will be truncated first
-                self._serialize(file)
-    
-    def serialize_if_possible(self):
-        if self.serializer_destination:
-            with open(self.serializer_destination, self.write_mode) as file:
-                # file will be truncated first
-                self._serialize(file)
-    
-    def _serialize(self, file: IOBase):
-        if self.serializer is None:
-            raise RuntimeError(f"serializer is not provided for element {self.name}")
-        if self._instance is None:
-            raise RuntimeError(f"no instance to serialize for element {self.name}")
-        self.serializer(self._instance, file)
-
-    def deserialize(self, file: Optional[IOBase] = None) -> T:
-        if file:
-            return self._deserialize(file)
-        else:
-            if not self.deserializer_source:
-                raise RuntimeError(f'deserializer source is not provided for element {self.name}')
-            with open(self.deserializer_source, self.read_mode) as file:
-                return self._deserialize(file)
-
-    def _deserialize(self, file: IOBase):
-        if self.deserializer is None:
-            raise RuntimeError(f"deserializer is not provided for element {self.name}")
-        self._instance = self.deserializer(file)
-        self._initialized = True
-        return self._instance
-
-    # below corresponds to user APIs
-
-    def __call__(self, *args, **kwargs) -> T:
-        # constructed?
-        if self._instance is None or self.construct_strategy == ConstructStrategy.EVERY_CALL:
-            self.construct(*args, **kwargs)
-        elif args or kwargs:
-            self.logger.warning('trying to call an element with args or kwargs, but the construction strategy does '
-                                'not allow reconstruction. The args or kwargs provided will be ignored')
+        self._instance = self.loader()
         assert self._instance is not None
-        # initialized?
-        if not self._initialized or self.initialize_strategy == InitializeStrategy.EVERY_CALL:
-            if self.initializer:
-                self.initializer(self._instance)
-            self._initialized = True
+        self.attempt_type_check_if_enabled()
         return self._instance
 
-    @property
-    def implemented(self):
-        return (self._instance is not None) or (self.constructor is not None)
+    def __call__(self) -> T:
+        return self.load()
+
+    def unload(self):
+        if self._instance is None:
+            raise RuntimeError(f"nothing to unload in element {self.name}")
+        if self.unloader is not None:
+            self.unloader(self._instance)
+        self._instance = None
+
+    def get(self) -> T:
+        if self._instance is not None:
+            return self._instance
+        if self.loader is not None:
+            self._instance = self.loader()
+            return self._instance
+        if self.default_factory is not None:
+            self._instance = self.default_factory()
+            return self._instance
+        if self.default is not None:
+            self._instance = self.default
+            return self._instance
+        raise RuntimeError(f"cannot get object for element {self.name}")
 
     @property
-    def serializable(self):
+    def serializable(self) -> bool:
         return self.serializer is not None
 
-    @property
-    def deserializable(self):
-        return self.deserializer is not None
+    def serialize(self):
+        if self.serializer is not None:
+            if self._instance is not None:
+                self.serializer(self._instance)
+            else:
+                raise RuntimeError(f"no object to serialize for element {self.name}")
+        else:
+            raise RuntimeError(f"no way to serialize object for element {self.name}")
 
-    def reset(self):
-        if self._instance is not None:
-            if self.destructor is not None:
-                self.destructor(self._instance)
-            self._instance = None
+    def initialize(self, *args: InitializationParams.args, **kwargs: InitializationParams.kwargs) -> T:
+        if self.initializer is not None:
+            self._instance = self.initializer(self._instance, *args, **kwargs)
+            self.attempt_type_check_if_enabled()
+            return self._instance
+        else:
+            if self.loader is None:
+                raise RuntimeError(f"no way to load new object for element {self.name}")
+            self.unload()
+            return self.__load()
+
+
+class EmptyElementInstance(Generic[T]):
+
+    def __init__(self, name: str, element: Element[T]):
+        self.name = name
+        self.cls = element.cls
+        self.default = element.default
+        self.default_factory = element.default_factory
+        self.optional = element.optional
+        self.type_check = element.type_check
+        self.type_check_fallback = element.type_check_fallback
+        self.require_serializable = element.require_serializable
+
+    @property
+    def implemented(self) -> bool: return False
+    def load(self) -> T: raise RuntimeError(f"element {self.name} not available")
+    def __call__(self) -> T: return self.load()
+    def unload(self): raise RuntimeError(f"element {self.name} not available")
+    def get(self) -> T: raise RuntimeError(f"element {self.name} not available")
+    @property
+    def serializable(self) -> bool: return False
+    def serialize(self): raise RuntimeError(f"element {self.name} not available")
+    def initialize(self, *args, **kwargs) -> T: raise RuntimeError(f"element {self.name} not available")
 
 
 class ElementManager(BaseElementManager):
@@ -196,17 +174,29 @@ class ElementManager(BaseElementManager):
                     element: Element = getattr(role.__class__, attribute_name)
                     try:
                         element_instance = ElementInstance(element_name, element, ElementImplementation())
-                        setattr(role, attribute_name, element_instance)
                     except Exception as e:
-                        if not element.optional:
-                            self.logger.warning(f'cannot implement element {element_name} of role {instance_name} '
-                                                f'using default specification: {e}')
+                        # e.g., when not serializable as required, or when default implementation does not match cls
+                        if element.optional:
+                            self.logger.warning(
+                                f'cannot implement element {element_name} of role {instance_name} '
+                                f'with default specification: {e}')
+                            setattr(role, attribute_name, EmptyElementInstance(element_name, element))
+                        else:
+                            self.logger.error(
+                                f'cannot implement element {element_name} of role {instance_name} '
+                                f'with default specification: {e}')
+                            self.logger.error(f'role {instance_name} is unusable as element {element_name} is required')
+                            raise
                     else:
                         if not element_instance.implemented and not element.optional:
-                            self.logger.warning(f'element {element_name} is not properly implemented for role '
-                                                f'{instance_name}, instance is {element_instance._instance}')
+                            self.logger.error(
+                                f'element {element_name} is not properly implemented for role '
+                                f'{instance_name}, instance is of type {type(element_instance._instance)}')
+                            self.logger.error(f'role {instance_name} is unusable as element {element_name} is required')
+                            raise RuntimeError(f'required element {element_name} of role {instance_name} unimplemented')
                         else:
                             self.logger.info(f'element {element_name} of role {instance_name} implemented as default')
+                            setattr(role, attribute_name, element_instance)
 
     def _on_role_status_finalizing(self, instance_name: str, _):
         with self.lock:
@@ -215,9 +205,14 @@ class ElementManager(BaseElementManager):
                 el = getattr(role, attribute_name)
                 if isinstance(el, ElementInstance):
                     if el.serializable:
-                        el.serialize_if_possible()  # only serialize when serializer_destination is provided
-                    el.reset()
-                    self.logger.info(f'element {element_name} of role {instance_name} has been reset')
+                        try:
+                            el.serialize()  # TODO consider adding a `serialize_on_finalizing` option
+                        except Exception as e:
+                            self.logger.warning(f'cannot serialize element {el.name} when finalizing')
+                        else:
+                            self.logger.info(f'element {element_name} of role {instance_name} has been serialized')
+                    el.unload()
+                    self.logger.info(f'element {element_name} of role {instance_name} has been unloaded')
             del self.roles[instance_name]
 
     def implement_element(self, instance_name: str, element_name: str, impl: ElementImplementation):

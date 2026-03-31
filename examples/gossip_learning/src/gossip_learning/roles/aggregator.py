@@ -5,7 +5,7 @@ from typing import Any
 from roleml.core.context import RoleInstanceID
 from roleml.core.role.base import Role
 from roleml.core.role.channels import Service, Event
-from roleml.core.role.elements import Element, ConstructStrategy
+from roleml.core.role.elements import Element
 from roleml.shared.collections.merger import ValueMerger, CumulativeValueMerger
 
 
@@ -16,15 +16,14 @@ class GossipAggregator(Role):
         self.gossip_lock = Lock()
         self.count = 0
 
-    buffer = Element(
-        ValueMerger, default_constructor=CumulativeValueMerger, default_construct_strategy=ConstructStrategy.ONCE_EAGER)
+    buffer = Element(ValueMerger, default_factory=CumulativeValueMerger)
 
     gossip_accepted = Event()
 
     @Service(expand=True)
     def accept_gossip(self, source: RoleInstanceID, data: Any):
         with self.gossip_lock:
-            self.buffer().push(data)
+            self.buffer.get().push(data)
             self.count += 1
             self.logger.info(f'gossip accepted from {source.actor_name}')
             self.gossip_accepted.emit(args={'source_name': source.actor_name})
@@ -32,9 +31,9 @@ class GossipAggregator(Role):
     @Service(expand=True)
     def get_data(self, _):
         with self.gossip_lock:
-            data = self.buffer().merge()
+            data = self.buffer.get().merge()
             count = self.count
-            self.buffer.reset()
+            self.buffer.unload()
             self.count = 0
             return data, count
 

@@ -13,10 +13,10 @@ class AllReduceAggregator(Role):
     DEFAULT_APPLY_UPDATE_CHANNEL = 'apply-update'
     DEFAULT_SOURCE_RELATIONSHIP = 'source'
 
-    split_op = Element(Callable)
-    add_op = Element(Callable, default_impl=lambda a, b: a + b)
-    divide_op = Element(Callable, default_impl=lambda a, count: a / count)
-    recover_op = Element(Callable)
+    split_op = Element(Callable[[Any, int], Any])   # type: Element[Callable[[Any, int], Any]]
+    add_op = Element(Callable[[Any, Any], Any], default=lambda a, b: a + b)
+    divide_op = Element(Callable[[Any, int], Any], default=lambda a, count: a / count)
+    recover_op = Element(Callable[[Any], Any])      # type: Element[Callable[[Any], Any]]
 
     def __init__(self, client_id: int = 0, num_clients: int = 0,
                  collect_channel: Optional[str] = None, apply_update_channel: Optional[str] = None,
@@ -38,7 +38,7 @@ class AllReduceAggregator(Role):
     @Service(expand=True)
     def scatter_reduce_initialize(self, _, **options):
         update = self.call_task(self.source_relationship, self.collect_channel, args=options).result()
-        self.data_blocks = self.split_op()(update, self.num_clients)
+        self.data_blocks = self.split_op.get()(update, self.num_clients)
         self.target_peer = list(self.ctx.relationships.get_relationship('peer-aggregator'))[0]
         self.current_send_block_id = self.client_id
         self.logger.info("scatter reduce phase initialize completed")
@@ -46,7 +46,7 @@ class AllReduceAggregator(Role):
     @Service(expand=True)
     def accept_add(self, _, block_id: int, data: Any):
         with self.data_lock:
-            self.data_blocks[block_id] = self.add_op()(self.data_blocks[block_id], data)
+            self.data_blocks[block_id] = self.add_op.get()(self.data_blocks[block_id], data)
 
     @Service(expand=True)
     def scatter_reduce_step(self, _):
@@ -76,6 +76,6 @@ class AllReduceAggregator(Role):
     @Service(expand=True)
     def all_reduce_finished(self, _):
         for i in range(self.num_clients):
-            self.data_blocks[i] = self.divide_op()(self.data_blocks[i], self.num_clients)
-        recovered_update = self.recover_op()(self.data_blocks)
+            self.data_blocks[i] = self.divide_op.get()(self.data_blocks[i], self.num_clients)
+        recovered_update = self.recover_op.get()(self.data_blocks)
         self.call(self.source_relationship, self.apply_update_channel, payloads={'update': recovered_update})
