@@ -73,9 +73,10 @@ We use a simple topology with one client and one server. In the original experim
       coordinator:
         impl:
           model:
-            constructor_args:
-              num_threads: 2
-              # ^^^ the original experiment uses 2
+            loader:
+              args:
+                num_threads: 2
+                # ^^^ the original experiment uses 2
           dataset: ...
           # ^^^ comment out this part since model testing is not needed
     ```
@@ -100,15 +101,17 @@ We use a simple topology with one client and one server. In the original experim
       trainer:
         impl:
           model:
-            constructor_args:
-              num_threads: 2
-              # ^^^ the original experiment uses 2
+            loader:
+              args:
+                num_threads: 2
+                # ^^^ the original experiment uses 2
           dataset:
-            constructor_args:
-              dataset:
-                options:
-                  root: /path/to/dataset
-                  # ^^^ change this to the <dataset-path> prepared before
+            loader:
+              args:
+                dataset:
+                  options:
+                    root: /path/to/dataset
+                    # ^^^ change this to the <dataset-path> prepared before
     ```
 
     b. Open a terminal, `cd` to the example root (_`<root>/examples/federated_learning`_) and run **`python scripts/run_resource_with_stage_pauses.py -c ./configs/dev/client-with-handshake.yaml --src ./src`**. This will start a client node that automatically performs handshake with the server.

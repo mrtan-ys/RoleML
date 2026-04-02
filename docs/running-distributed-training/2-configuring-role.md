@@ -43,14 +43,16 @@ options:
   default_num_epochs: 2
 impl:
   model:
-    class: src.workloads.model.MyModel
-    constructor_args:
-      lr: 0.01
+    loader:
+      target: src.workloads.model.MyModel
+      args:
+        lr: 0.01
   dataset:
-    class: src.workloads.dataset.MyDataset
-    constructor_args:
-      root: /path/to/my/dataset
-      part: 2
+    loader:
+      target: src.workloads.dataset.MyDataset
+      args:
+        root: /path/to/my/dataset
+        part: 2
 ```
 
-With the above configuration, a model object will be created as `MyModel(lr=0.01)` when calling the corresponding element instance for the first time. Since the construction strategy defaults to `ONCE`, the created model object will be cached and directly returned in subsequent calls to the same element.
+With the above configuration, a model object will be created as `MyModel(lr=0.01)` when calling the `get()` method of the corresponding element instance for the first time.

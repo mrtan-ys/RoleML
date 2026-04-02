@@ -62,15 +62,17 @@ For simplicity without affecting the result fidelity, we apply a one-client-one-
       trainer:
         impl:
           model:
-            constructor_args:
-              num_threads: 2
-              # ^^^ the original experiment uses 2
+            loader:
+              args:
+                num_threads: 2
+                # ^^^ the original experiment uses 2
           dataset:
-            constructor_args:
-              dataset:
-                options:
-                  root: /path/to/dataset
-                  # ^^^ change this to the <dataset-path> prepared before
+            loader:
+              args:
+                dataset:
+                  options:
+                    root: /path/to/dataset
+                    # ^^^ change this to the <dataset-path> prepared before
     ```
 
     c. Open a terminal and run **`python scripts/run.py -c ./configs/dev/client-with-handshake.yaml --src ./src -p -pe 3000000`**. This will start a client node that automatically performs handshake with the server, and a profiler that automatically records the execution time of each Python function.
@@ -107,21 +109,24 @@ We will run Gossip Learning with three clients, one of which will be deployed on
       trainer:
         impl:
           model:
-            constructor_args:
-              num_threads: 2
-              # ^^^ the original experiment uses 2
+            loader:
+              args:
+                num_threads: 2
+                # ^^^ the original experiment uses 2
           dataset:
-            constructor_args:
-              dataset:
-                options:
-                  root: /path/to/dataset
-                  # ^^^ change this to the <dataset-path> prepared before
+            loader:
+              args:
+                dataset:
+                  options:
+                    root: /path/to/dataset
+                    # ^^^ change this to the <dataset-path> prepared before
           dataset_test:
-            constructor_args:
-              dataset:
-                options:
-                  root: /path/to/dataset
-                  # ^^^ change this to the <dataset-path> prepared before
+            loader:
+              args:
+                dataset:
+                  options:
+                    root: /path/to/dataset
+                    # ^^^ change this to the <dataset-path> prepared before
     ```
 
     c. Open a terminal and run **`python scripts/run.py -c ./configs/dev/client.yaml --src ./src -p -pe 3000000`**. This will start a client node that listens to the Conductor rode for a starting signal.
@@ -154,17 +159,19 @@ We will run Gossip Learning with three clients, one of which will be deployed on
       trainer:  # role instance name
         impl:
           dataset:
-            constructor_args:
-              dataset:
-                options:
-                  root: /path/to/dataset
-                  # ^^^ change this to the <dataset-path> prepared before
+            loader:
+              args:
+                dataset:
+                  options:
+                    root: /path/to/dataset
+                    # ^^^ change this to the <dataset-path> prepared before
           dataset_test:
-            constructor_args:
-              dataset:
-                options:
-                  root: /path/to/dataset
-                  # ^^^ change this to the <dataset-path> prepared before
+            loader:
+              args:
+                dataset:
+                  options:
+                    root: /path/to/dataset
+                    # ^^^ change this to the <dataset-path> prepared before
     ```
 
     d. Open a terminal (A) and run **`python tests/run_batch.py configs/dev/nodes/small-overhead.yaml --workdir . --src ./src --common-config configs/dev/shared/common.yaml`**. This will start `client2` and `client3` on the current server.

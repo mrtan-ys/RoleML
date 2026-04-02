@@ -22,28 +22,32 @@ The root of the example is _`<root>/examples/federated_learning`_. In the follow
       trainer:
         impl:
           model:
-            constructor_args:
-              num_threads: 1
-              # ^^^ the original experiment uses 1
+            loader:
+              args:
+                num_threads: 1
+                # ^^^ the original experiment uses 1
           dataset:
-            constructor_args:
-              dataset:
-                options:
-                  root: /path/to/dataset
-                  # ^^^ change this to the <dataset-path> prepared before
+            loader:
+              args:
+                dataset:
+                  options:
+                    root: /path/to/dataset
+                    # ^^^ change this to the <dataset-path> prepared before
     server:
       coordinator:
         impl:
           model:
-            constructor_args:
-              num_threads: 4
-              # ^^^ the original experiment uses 4
+            loader:
+              args:
+                num_threads: 4
+                # ^^^ the original experiment uses 4
           dataset:
-            constructor_args:
-              dataset:
-                options:
-                  root: /path/to/dataset
-                  # ^^^ change this to the <dataset-path> prepared before
+            loader:
+              args:
+                dataset:
+                  options:
+                    root: /path/to/dataset
+                    # ^^^ change this to the <dataset-path> prepared before
     ```
 
 3. By default, all nodes are running on `127.0.0.1`. So there is no need to change the nodes' addresses. However, if you encounter problems like _address already in use_, you may want to change the ports used by the clients in _`configs/dev/nodes/medium.yaml`_.

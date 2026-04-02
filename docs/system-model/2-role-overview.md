@@ -18,7 +18,7 @@ The interaction between different roles via these message channels forms the _wo
 
 ### Workloads
 
-A workload element is declared by a role class. When declaring a workload element, you don't need to care about where a workload object may come from (for example, does it come from a factory or as an existing singleton?). In fact, you can provide different implementations for different instances of the same role class. When an implementation is provided, the corresponding role instance will receive a proxy object, which is called an _element instance_, that contains the detail of the implementation and can be called to obtain a concrete workload object.
+A workload element is declared by a role class. When declaring a workload element, you don't need to care about where a workload object may come from (for example, does it come from a factory or as an existing singleton?). In fact, you can provide different implementations for different instances of the same role class. When an implementation is provided, the corresponding role instance will receive a proxy object, which is called an _element instance_, that contains the detail of the implementation and can be accessed to obtain a concrete workload object.
 
 See [this document](4-workload.md) for more detail about defining and using workload elements.
 
