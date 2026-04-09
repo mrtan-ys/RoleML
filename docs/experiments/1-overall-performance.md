@@ -80,7 +80,7 @@ The root of the example is _`<root>/examples/federated_learning`_. In the follow
     mounts: [
       "/path/to/dataset/on/host:/path/to/dataset/in/container",
       # ^^^ change the former path to <dataset-path>
-      #     change the latter path to what you have configured in the `configs/dev/roles/fedavg-v2-with-registration.yaml`->`client.*`->`trainer`->`dataset`->`constructor_args`->`dataset`->`options`->`root`
+      #     change the latter path to what you have configured in `configs/dev/roles/fedavg-v2-with-registration.yaml`->client.*:trainer:dataset:loader:args:dataset:options:root
       "/path/to/RoleML:/roleml" # mount roleml source code into container
       # ^^^ change the former path to <root>
     ]
