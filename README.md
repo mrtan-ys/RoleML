@@ -1,5 +1,15 @@
 # RoleML
 
+_A programming model for edge distributed ML_
+
+![PyPI Version](https://img.shields.io/pypi/v/roleml-ai?labelColor=blue&color=tomato)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/roleml-ai?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLUE&right_color=BRIGHTGREEN&left_text=downloads)](https://pepy.tech/projects/roleml-ai)
+![GitHub License](https://img.shields.io/github/license/mrtan-ys/roleml?labelColor=blue&color=cyan)
+![Last Commit](https://img.shields.io/github/last-commit/mrtan-ys/roleml/main?labelColor=blue&color=wheat)
+![Python Version](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fmrtan-ys%2FRoleML%2Frefs%2Fheads%2Fmain%2Fpyproject.toml&labelColor=blue&color=aliceblue)
+
+---
+
 Edge AI aims to enable distributed machine learning (DML) on edge resources to fulfill the need for data privacy and low latency. Meanwhile, the challenge of device heterogeneity and discrepancy in data distribution requires more sophisticated DML architectures that differ in topology and communication strategy. This calls for a _standardized and general programming interface and framework_ that provides support for easy development and testing of various DML architectures. Existing frameworks like FedML are designed for specific architectures (e.g. Federated Learning) and do not support users to customize new architectures on them.
 
 RoleML is introduced as a novel, general-purpose **role-oriented programming model** for the development of DML architectures. RoleML breaks a DML architecture into a series of interactive components and represents them with a unified abstraction named _role_. Each role defines its behavior with three types of message _channels_, and uses _elements_ to specify the workloads in a modular manner and decouple them from the distributed training workflow. Powered by a runtime system, RoleML allows developers to flexibly and dynamically assign roles to different computation nodes, simplifying the implementation of complex architectures. We further provide an automatic role offloading mechanism based on containerization to enhance the reliability of DML applications.
