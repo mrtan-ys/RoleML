@@ -10,7 +10,12 @@ class ResourceMeasurementSession(MeasurementSession):
         import os
         import subprocess as sp
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        sp.Popen(['bash', f'{current_dir}/resource.sh', f'{os.getpid()}'], cwd=os.getcwd(), stdout=self.file)
+        self.process = sp.Popen(
+            ['bash', f'{current_dir}/resource.sh', f'{os.getpid()}'],
+            cwd=os.getcwd(),
+            stdout=self.file,
+            stderr=sp.STDOUT,
+        )
 
 
 def run_with_resource_measurements(app_name: str = 'dml', **options):
