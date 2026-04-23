@@ -81,7 +81,13 @@ We use a simple topology with one client and one server. In the original experim
           # ^^^ comment out this part since model testing is not needed
     ```
 
-    b. Open a terminal, `cd` to the example root (_`<root>/examples/federated_learning`_) and run **`python scripts/run.py -c ./configs/dev/server-fedavg-with-handshake.yaml --src ./src`**. This will start a server node that is ready to receive client handshakes.
+    b. Open a terminal, `cd` to the example root (_`<root>/examples/federated_learning`_) and run:
+
+    ```console
+    $ python scripts/run.py -c ./configs/dev/server-fedavg-with-handshake.yaml --src ./src
+    ```
+
+    This will start a server node that is ready to receive client handshakes.
 
 2. Start the client
 
@@ -114,8 +120,14 @@ We use a simple topology with one client and one server. In the original experim
                     # ^^^ change this to the <dataset-path> prepared before
     ```
 
-    b. Open a terminal, `cd` to the example root (_`<root>/examples/federated_learning`_) and run **`python scripts/run_resource_with_stage_pauses.py -c ./configs/dev/client-with-handshake.yaml --src ./src`**. This will start a client node that automatically performs handshake with the server.
+    b. Open a terminal, `cd` to the example root (_`<root>/examples/federated_learning`_) and run:
+
+    ```console
+    $ python scripts/run_resource_with_stage_pauses.py -c ./configs/dev/client-with-handshake.yaml --src ./src
+    ```
+
+    This will start a client node that automatically performs handshake with the server.
 
 3. Train
 
-    After completing previous steps, Federated Learning should start automatically. Simply wait for it to finish (the server terminal will prompt "FL is done"). A `resource.log` file that records the resource utilization should be available in the example root or the _`scripts`_ directory.
+    After completing previous steps, Federated Learning should start automatically. Simply wait for it to finish (the server terminal will prompt `FL is done`). A `resource.log` file that records the resource utilization should be available in the example root or the _`scripts`_ directory.

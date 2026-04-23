@@ -52,15 +52,33 @@ The root of the example is _`<root>/examples/federated_learning`_. In the follow
 
 3. By default, all nodes are running on `127.0.0.1`. So there is no need to change the nodes' addresses. However, if you encounter problems like _address already in use_, you may want to change the ports used by the clients in _`configs/dev/nodes/medium.yaml`_.
 
-4. Open a terminal (A) and run **`python tests/run_batch.py configs/dev/nodes/medium.yaml --workdir . --src ./src --common-config configs/dev/shared/common.yaml`**. This will start a batch of "raw" nodes including 10 clients and 1 server (defined in `<fl-root>/configs/dev/nodes/medium.yaml`). Each node is represented by an actor.
+4. Open a terminal (A) and run:
+
+    ```console
+    $ python tests/run_batch.py configs/dev/nodes/medium.yaml --workdir . --src ./src --common-config configs/dev/shared/common.yaml
+    ```
+
+    This will start a batch of "raw" nodes including 10 clients and 1 server (defined in `<fl-root>/configs/dev/nodes/medium.yaml`). Each node is represented by an actor.
 
 5. When the nodes are started (shouldn't take too long), they are ready to accept role assignments.
 
-6. Open another terminal (B) and run **`python tests/conductor.py --config tests/conductor.yaml --workdir .`**. This will start another actor to run the Conductor role (used to configure other nodes), which will then open a CLI for user control via the console.
+6. Open another terminal (B) and run:
+
+    ```console
+    $ python tests/conductor.py --config tests/conductor.yaml --workdir .
+    ```
+
+    This will start another actor to run the Conductor role (used to configure other nodes), which will then open a CLI for user control via the console.
 
     > This actor will run on port 4000 by default. If this port has been occupied, change to another port by configuring _`tests/conductor.yaml`_ and _`configs/dev/shared/common.yaml`_.
 
-7. In the Conductor CLI (a prompt `FL>` should be visible), run the command **`configure configs/dev/appConfig-fedavg-v2-medium-with-registration.yaml`** to deploy the configuration file. Every deployment generates a separate reproducible configuration (named `run-*.yaml`).
+7. In the Conductor CLI, type the following command and press enter to run it:
+
+    ```
+    FL> configure configs/dev/appConfig-fedavg-v2-medium-with-registration.yaml
+    ```
+
+    This will deploy the configuration file. Every deployment generates a separate reproducible configuration (named `run-*.yaml`).
 
 8. After the deployment is completed, Federated Learning should start automatically.
 
@@ -88,13 +106,27 @@ The root of the example is _`<root>/examples/federated_learning`_. In the follow
     # ^^^ change this to a writable directory on your host    
     ```
 
-3. Run `which python` to get the path of the Python executable, denoted as _**`<python-path>`**_.
+3. Run `$ which python` to get the path of the Python executable, denoted as _**`<python-path>`**_.
 
-4. Open a terminal (A) and run **`sudo <python-path> tests/run_batch.py configs/dev/nodes/medium.yaml --workdir . --src ./src --common-config configs/dev/shared/common-containerized.yaml --containerize`**.
+4. Open a terminal (A) and run:
 
-5. Open another terminal (B) and run **`python tests/conductor.py --config tests/conductor.yaml --workdir .`**.
+    ```console
+    $ sudo <python-path> tests/run_batch.py configs/dev/nodes/medium.yaml --workdir . --src ./src --common-config configs/dev/shared/common-containerized.yaml --containerize
+    ```
 
-6. In the Conductor CLI (a prompt `FL>` should be visible), run the command **`configure configs/dev/appConfig-fedavg-v2-medium-with-registration-containerized.yaml`** to deploy the configuration file.
+5. Open another terminal (B) and run:
+
+    ```console
+    $ python tests/conductor.py --config tests/conductor.yaml --workdir .
+    ```
+
+6. In the Conductor CLI, type the following command and press enter to run it:
+
+    ```
+    FL> configure configs/dev/appConfig-fedavg-v2-medium-with-registration-containerized.yaml
+    ```
+
+    This will deploy the configuration file.
 
 7. After the deployment is completed, Federated Learning should start automatically.
 

@@ -57,9 +57,15 @@ We will run E-Tree Learning with 6 clients, which will be deployed on the VM. Be
     # ^^^ change this to a writable directory on the vm   
     ```
 
-    c. Run `which python` to get the path of the Python executable, denoted as _**`<python-path>`**_.
+    c. Run `$ which python` to get the path of the Python executable, denoted as _**`<python-path>`**_.
 
-    d. Open a terminal and run **`sudo <python-path> scripts/run.py -c ./configs/dev/client-offload.yaml --src ./src --containerize`**. This will start a client node that listens to the Conductor role for deployment and starting signal.
+    d. Open a terminal and run:
+
+    ```console
+    $ sudo <python-path> scripts/run.py -c ./configs/dev/client-offload.yaml --src ./src --containerize
+    ```
+
+    This will start a client node that listens to the Conductor role for deployment and starting signal.
 
 2. On the server (running conductor)
 
@@ -99,24 +105,31 @@ We will run E-Tree Learning with 6 clients, which will be deployed on the VM. Be
             self.call_task('coordinator', 'run', args={'num_rounds': num_rounds}).result()
     ```
 
-    d. Open a terminal and run **`python tests/conductor.py --config tests/conductor-offload.yaml --workdir .`**. This will start a node to run the Conductor role, which is used to control the experiment with a runtime CLI (you should see a `EL>` prompt in the console).
+    d. Open a terminal and run:
+
+    ```console
+    $ python tests/conductor.py --config tests/conductor-offload.yaml --workdir .
+    ```
+
+    This will start a node to run the Conductor role, which is used to control the experiment with a runtime CLI (you should see a `EL>` prompt in the console).
 
 3. Start training
 
     In the runtime CLI described above, run the following commands in order to start E-Tree Learning:
 
     ```
-    configure configs/dev/appConfig-small-offload.yaml
-    start --num_rounds 9999
+    EL> configure configs/dev/appConfig-small-offload.yaml
+    EL> start --num_rounds 9999
     ```
 
 4. Stress the root node's VM
 
     Open a new terminal on the VM and run:
 
-    ```bash
-    cat /dev/urandom | gzip -9 > /dev/null
+    ```console
+    $ cat /dev/urandom | gzip -9 > /dev/null
     ```
+
     This will fully occupy a CPU core. Ideally, the 4-core-VM's CPU utilization should be around 400% now.
 
     If your VM has more than 4 cores, you can run this command multiple times to stress more cores, or change the threshold in the `tests/conductor-offload.yaml`->`roles.offloading_decider.options.threshold_ratio` to a lower value.

@@ -40,7 +40,13 @@ For simplicity without affecting the result fidelity, we apply a one-client-one-
           # ^^^ comment out this part since model testing is not needed
     ```
 
-    c. Open a terminal and run **`python scripts/run.py -c ./configs/dev/server-fedavg-with-handshake.yaml --src ./src`**. This will start a server node that is ready to receive client handshakes.
+    c. Open a terminal and run:
+    
+    ```console
+    $ python scripts/run.py -c ./configs/dev/server-fedavg-with-handshake.yaml --src ./src
+    ```
+
+    This will start a server node that is ready to receive client handshakes.
 
 2. Start the client
 
@@ -75,7 +81,13 @@ For simplicity without affecting the result fidelity, we apply a one-client-one-
                     # ^^^ change this to the <dataset-path> prepared before
     ```
 
-    c. Open a terminal and run **`python scripts/run.py -c ./configs/dev/client-with-handshake.yaml --src ./src -p -pe 3000000`**. This will start a client node that automatically performs handshake with the server, and a profiler that automatically records the execution time of each Python function.
+    c. Open a terminal and run:
+    
+    ```console
+    $ python scripts/run.py -c ./configs/dev/client-with-handshake.yaml --src ./src -p -pe 3000000
+    ```
+
+    This will start a client node that automatically performs handshake with the server, and a profiler that automatically records the execution time of each Python function.
 
     > For functionality checks, the number of trace entries (`-pe`) may be reduced when the memory is constrained.
 
@@ -129,7 +141,13 @@ We will run Gossip Learning with three clients, one of which will be deployed on
                     # ^^^ change this to the <dataset-path> prepared before
     ```
 
-    c. Open a terminal and run **`python scripts/run.py -c ./configs/dev/client.yaml --src ./src -p -pe 3000000`**. This will start a client node that listens to the Conductor rode for a starting signal.
+    c. Open a terminal and run:
+
+    ```console
+    $ python scripts/run.py -c ./configs/dev/client.yaml --src ./src -p -pe 3000000
+    ```
+
+    This will start a client node that listens to the Conductor rode for a starting signal.
 
 2. On the server (running all other nodes)
 
@@ -174,17 +192,29 @@ We will run Gossip Learning with three clients, one of which will be deployed on
                     # ^^^ change this to the <dataset-path> prepared before
     ```
 
-    d. Open a terminal (A) and run **`python tests/run_batch.py configs/dev/nodes/small-overhead.yaml --workdir . --src ./src --common-config configs/dev/shared/common.yaml`**. This will start `client2` and `client3` on the current server.
+    d. Open a terminal (A) and run:
 
-    e. Open another terminal (B) and run **`python tests/conductor.py --config tests/conductor.yaml --workdir .`**. This will start a node to run the Conductor role, which is used to control the experiment with a runtime CLI (you should see a `GL>` prompt in the console).
+    ```console
+    $ python tests/run_batch.py configs/dev/nodes/small-overhead.yaml --workdir . --src ./src --common-config configs/dev/shared/common.yaml
+    ```
+
+    This will start `client2` and `client3` on the current server.
+
+    e. Open another terminal (B) and run:
+
+    ```console
+    $ python tests/conductor.py --config tests/conductor.yaml --workdir .
+    ```
+
+    This will start a node to run the Conductor role, which is used to control the experiment with a runtime CLI (you should see a `GL>` prompt in the console).
 
 3. Train
 
     In the runtime CLI described above, run the following commands in order to start Gossip Learning:
 
     ```
-    configure configs/dev/appConfig-small-overhead.yaml
-    start --num_rounds 5
+    GL> configure configs/dev/appConfig-small-overhead.yaml
+    GL> start --num_rounds 5
     ```
 
     Wait until the training finishes (no more log messages about training progress in the terminals), then simply kill the scripts. (You may need to use Ctrl+C multiple times to kill the control node). When killing the client on the VM, wait while the profiler is dumping the traces. The trace file should be available in the `profiling` directory in the example root. It can be opened with `vizviewer` in the current environment.
@@ -228,9 +258,15 @@ We will run Gossip Learning with three clients, which will be deployed on the VM
     # ^^^ change this to a writable directory on the vm   
     ```
 
-    c. Run `which python` to get the path of the Python executable, denoted as _**`<python-path>`**_.
+    c. Run `$ which python` to get the path of the Python executable, denoted as _**`<python-path>`**_.
 
-    d. Open a terminal and run **`sudo <python-path> scripts/run.py -c ./configs/dev/client-containerized.yaml --src ./src -p -pe 3000000 --containerize`**. This will start a client node that listens to the Conductor role for deployment and starting signal.
+    d. Open a terminal and run:
+
+    ```console
+    $ sudo <python-path> scripts/run.py -c ./configs/dev/client-containerized.yaml --src ./src -p -pe 3000000 --containerize
+    ```
+
+    This will start a client node that listens to the Conductor role for deployment and starting signal.
 
 2. On the server (running conductor)
 
@@ -251,15 +287,21 @@ We will run Gossip Learning with three clients, which will be deployed on the VM
         # ^^^ change this to the expected address of client3
     ```
 
-    d. Open a terminal and run **`python tests/conductor.py --config tests/conductor.yaml --workdir .`**. This will start a node to run the Conductor role, which is used to control the experiment with a runtime CLI (you should see a `GL>` prompt in the console).
+    d. Open a terminal and run:
+
+    ```console
+    $ python tests/conductor.py --config tests/conductor.yaml --workdir .
+    ```
+
+    This will start a node to run the Conductor role, which is used to control the experiment with a runtime CLI (you should see a `GL>` prompt in the console).
 
 3. Train
 
     In the runtime CLI described above, run the following commands in order to start Gossip Learning:
 
     ```
-    configure configs/dev/appConfig-small-overhead-containerized.yaml
-    start --num_rounds 5
+    GL> configure configs/dev/appConfig-small-overhead-containerized.yaml
+    GL> start --num_rounds 5
     ```
 
     Wait until the training finishes (no more log messages about training progress in the terminals), then simply kill the scripts. (You may need to use Ctrl+C multiple times to kill the control node). 
