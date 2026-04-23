@@ -7,7 +7,6 @@ class MeasurementSession:
         self.filename = filename
         self.app_name = app_name
         self.file = None
-        self.process = None
 
     def __enter__(self):
         self.begin()
@@ -28,13 +27,4 @@ class MeasurementSession:
         self.end()
 
     def end(self):
-        if self.process is not None:
-            self.process.terminate()
-            try:
-                self.process.wait(timeout=5)
-            except Exception:
-                self.process.kill()
-                self.process.wait()
-            finally:
-                self.process = None
         self.file.close()   # type: ignore

@@ -14,10 +14,22 @@ while true; do
         break;
     fi
 
-    cpuUsage=$(ps -p "${PID}" -o %cpu= | awk '{print $1}') || break
-    memUsage=$(ps -p "${PID}" -o rss=,vsz= | awk '{print $1 " KiB " $2 " KiB"}') || break
-    now=$(date --iso-8601=ns) || break
+    cpuUsage=$(ps -p "${PID}" -o %cpu= | awk '{print $1}') || {
+        echo "Failed to collect CPU usage for PID ${PID}."
+        break
+    }
+    memUsage=$(ps -p "${PID}" -o rss=,vsz= | awk '{print "RSS " $1 " KiB; VSZ " $2 " KiB"}') || {
+        echo "Failed to collect memory usage for PID ${PID}."
+        break
+    }
+    now=$(date --iso-8601=ns) || {
+        echo "Failed to collect timestamp."
+        break
+    }
 
-    echo "${now} -- CPU: ${cpuUsage}%; RAM: RSS ${memUsage}" || break
+    echo "${now} -- CPU: ${cpuUsage}%; RAM: ${memUsage}" || {
+        echo "Failed to write resource usage log entry."
+        break
+    }
     sleep 0.5
 done
