@@ -49,7 +49,7 @@ We will run E-Tree Learning with 6 clients, which will be deployed on the VM. Be
     mounts: [
       "/path/to/dataset/on/vm:/path/to/dataset/in/container",
       # ^^^ change the former path to <dataset-path>
-      #     change the latter path to what you have configured in the `configs/dev/roles/default.yaml`->`client.*`->`trainer`->`dataset`->`constructor_args`->`dataset`->`options`->`root`
+      #     change the latter path to what you have configured in the `configs/dev/roles/default.yaml`->client.*:trainer:dataset:loader:args:dataset:options:root
       "/path/to/RoleML/on/vm:/roleml" # mount roleml source code into container
       # ^^^ change the former path to <root>
     ]
