@@ -9,27 +9,15 @@ echo "====== Monitoring CPU and RAM usage ======"
 echo "PID of process to monitor is ${1}; PID of current script is $$"
 PID="${1}"
 while true; do
-    if [ ! -r "/proc/${PID}/status" ]; then
+    {
+        # TODO optimize this
+        cpuUsage=$(top -b -p ${1} -n 1 | grep ${1} | awk '{print $9}') &&
+        memUsage=$(awk '{ORS=" "} /VmSize|VmRSS/ {print $2,$3}' < /proc/${PID}/status) &&
+        now=$(date --iso-8601=ns) &&
+        echo "${now} -- CPU: ${cpuUsage}; RAM: ${memUsage}" &&
+        sleep 0.5;
+    } || {
         echo "The process has exited or an error has occurred, monitoring done.";
         break;
-    fi
-
-    cpuUsage=$(ps -p "${PID}" -o %cpu= | awk '{print $1}') || {
-        echo "Failed to collect CPU usage for PID ${PID}."
-        break
     }
-    memUsage=$(ps -p "${PID}" -o rss=,vsz= | awk '{print "RSS " $1 " KiB; VSZ " $2 " KiB"}') || {
-        echo "Failed to collect memory usage for PID ${PID}."
-        break
-    }
-    now=$(date --iso-8601=ns) || {
-        echo "Failed to collect timestamp."
-        break
-    }
-
-    echo "${now} -- CPU: ${cpuUsage}%; RAM: ${memUsage}" || {
-        echo "Failed to write resource usage log entry."
-        break
-    }
-    sleep 0.5
 done
