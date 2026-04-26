@@ -22,7 +22,7 @@ class ELCoordinator(Role):
         dataset = self.dataset.get()    # type: DataStreams     # test dataset
         for i in range(num_rounds):
             # 1. dispatch, propagate to leaf nodes (trainers)
-            self.call(ELCoordinator.ROOT_RELATIONSHIP_NAME, 'dispatch', payloads={'update': model.get_params()})
+            self.call(ELCoordinator.ROOT_RELATIONSHIP_NAME, 'apply-update', payloads={'update': model.get_params()})
             self.logger.info(f'round {i} updates applied')
             # 2. train, wait for aggregated model to propagate to the root
             future = self.call_task(ELCoordinator.ROOT_RELATIONSHIP_NAME, 'aggregate')
