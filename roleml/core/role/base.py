@@ -3,7 +3,7 @@ from typing import Any, Callable, ClassVar, Iterable, Mapping, Optional, Union, 
 
 from roleml.core.actor.group.helpers import ErrorHandlingStrategy
 from roleml.core.context import ActorProfile, RoleInstanceID, Context
-from roleml.core.role.channels import EventHandlerProperties, Event, ChannelType, ServiceTaskHandlerProperties
+from roleml.core.role.channels import EventHandlerProperties, Event, ChannelType, Alias, ServiceTaskHandlerProperties
 from roleml.core.role.elements import Element
 from roleml.core.role.exceptions import CallerError
 from roleml.core.role.naming import to_standardized_name
@@ -45,7 +45,16 @@ class Role:
         cls.elements = getattr(cls, 'elements', {}).copy()
         cls.plugin_attributes = getattr(cls, 'plugin_attributes', {}).copy()
         for attr_name, attr in cls.__dict__.items():
-            if isinstance(attr, Event):     # is an event channel
+            if isinstance(attr, Alias):     # is alias of
+                original_name = to_standardized_name(attr.original_name)
+                new_name = to_standardized_name(attr.new_name or attr_name)
+                if attr_name := cls.services.get(original_name):    # a service channel
+                    cls.services[new_name] = attr_name
+                elif attr_name := cls.tasks.get(original_name):     # a task channel
+                    cls.tasks[new_name] = attr_name
+                else:
+                    raise TypeError('invalid alias')    # TODO support event alias
+            elif isinstance(attr, Event):     # is an event channel
                 standardized_name = to_standardized_name(getattr(attr, 'channel_name', attr_name) or attr_name)
                 attr.channel_name = standardized_name
                 cls.events[standardized_name] = attr_name
@@ -56,8 +65,8 @@ class Role:
                     cls.subscriptions.add(attr_name)
                 elif channel_type := getattr(properties, 'channel_type', None):     # a service or task channel
                     assert isinstance(properties, ServiceTaskHandlerProperties)
-                    standardized_name = to_standardized_name(properties.channel_name)
-                    properties.channel_name = standardized_name
+                    standardized_name = to_standardized_name(properties.primary_channel_name)
+                    properties.primary_channel_name = standardized_name
                     if channel_type == ChannelType.SERVICE:
                         cls.services[standardized_name] = attr_name
                     elif channel_type == ChannelType.TASK:

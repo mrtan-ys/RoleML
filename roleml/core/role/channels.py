@@ -35,21 +35,21 @@ class HandlerDecorator:
 
 @dataclass
 class ServiceTaskHandlerProperties:
-    channel_name: str
+    primary_channel_name: str
     channel_type: ChannelType
 
 
 class ServiceTaskHandlerDecorator(HandlerDecorator):
 
-    def __init__(self, channel_name: Optional[str], channel_type: ChannelType, expand: bool):
+    def __init__(self, primary_channel_name: Optional[str], channel_type: ChannelType, expand: bool):
         super().__init__(expand)
-        self.channel_name = channel_name
+        self.primary_channel_name = primary_channel_name
         self.channel_type = channel_type
 
     def __call__(self, handler: Callable[..., Any]):
         handler_wrapped = super().__call__(handler)
         handler_wrapped.properties = ServiceTaskHandlerProperties(  # type: ignore
-            self.channel_name or handler.__name__,  # will be converted to standardized name in Role
+            self.primary_channel_name or handler.__name__,  # will be converted to standardized name in Role
             self.channel_type)
         return handler_wrapped
 
@@ -133,6 +133,15 @@ def EventHandler(relationship: str, channel_name: str, *, expand: bool = False,
                  conditions: Optional[dict[str, Any]] = None, mode: EventSubscriptionMode = 'forever',
                  extra_filter: Callable[[RoleInstanceID], bool] = lambda instance: True):
     return EventHandlerDecorator(channel_name, expand, conditions or {}, mode, relationship, extra_filter)
+
+
+class Alias:
+
+    __slots__ = ('original_name', 'new_name')
+
+    def __init__(self, original_name: str, new_name: Optional[str] = None):
+        self.original_name = original_name
+        self.new_name = new_name
 
 
 # noinspection PyPep8Naming
