@@ -8,7 +8,7 @@ from roleml.core.builders.element import ElementImplementationSpec, \
 from roleml.core.builders.role import RoleDescriptor, RoleSpec
 from roleml.core.context import RoleInstanceID, RoleInstanceIDTuple
 from roleml.core.role.base import Role as Role
-from roleml.core.role.channels import Service, Task, Event, EventHandler, attribute
+from roleml.core.role.channels import Service, Task, Event, EventHandler, Alias, attribute
 from roleml.core.role.elements import Element
 from roleml.core.role.types import Message, Args, Payloads, MyArgs, MyPayloads, \
     TaskInvocation, EventSubscriptionMode, PluginAttribute
@@ -21,7 +21,7 @@ __all__ = [
     'RoleDescriptor', 'RoleSpec',
     'RoleInstanceID', 'RoleInstanceIDTuple',
     'Role',
-    'Service', 'Task', 'Event', 'EventHandler', 'attribute',
+    'Service', 'Task', 'Event', 'EventHandler', 'Alias', 'attribute',
     'Element',
     'Message', 'Args', 'Payloads', 'MyArgs', 'MyPayloads', 'TaskInvocation', 'EventSubscriptionMode', 'PluginAttribute',
 ]
