@@ -52,8 +52,10 @@ class Role:
                     cls.services[new_name] = attr_name
                 elif attr_name := cls.tasks.get(original_name):     # a task channel
                     cls.tasks[new_name] = attr_name
+                elif attr_name := cls.events.get(original_name):    # an event channel
+                    cls.events[new_name] = attr_name
                 else:
-                    raise TypeError('invalid alias')    # TODO support event alias
+                    raise TypeError('invalid alias')
             elif isinstance(attr, Event):     # is an event channel
                 standardized_name = to_standardized_name(getattr(attr, 'channel_name', attr_name) or attr_name)
                 attr.channel_name = standardized_name

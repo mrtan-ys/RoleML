@@ -15,7 +15,8 @@ from roleml.core.messaging.exceptions import InvocationAbortError, InvocationRef
 from roleml.core.messaging.types import Args, Payloads, Tags, MyArgs, MyPayloads
 from roleml.core.role.base import Role
 from roleml.core.role.channels import Event, EventHandlerProperties, attribute as Attribute     # noqa: naming
-from roleml.core.role.exceptions import ChannelNotFoundError, NoSuchEventError, CallerError, HandlerError
+from roleml.core.role.exceptions import \
+    ChannelNotFoundError, NoSuchEventError, CallerError, HandlerError, NoSuchRoleError
 from roleml.core.role.types import EventSubscriptionMode, Message
 from roleml.core.status import Status
 from roleml.shared.aop import aspect, after, InvocationActivity
@@ -70,6 +71,7 @@ class EventSubscriptionListener(NamedTuple):
 EVENT_UNIFIED_MESSAGING_CHANNEL = 'EVENT'
 EVENT_SUBSCRIPTION_UNIFED_MESSAGING_CHANNEL = 'EVENT_SUB'
 EVENT_UNSUBSCRIPTION_UNIFED_MESSAGING_CHANNEL = 'EVENT_UNSUB'
+EVENT_NAME_QUERY_CHANNEL = 'EVENT_NAME_QUERY'
 EVENT_DISCONTINUING_UNIFIED_MESSAGE_CHANNEL = 'EVENT_DISCONTINUE'
 
 
@@ -78,6 +80,7 @@ class EventManager(BaseEventManager, ChannelCallManagerMixin):
 
     # locally registered event channels
     events: dict[str, dict[str, EventInfo]]     # instance name => (channel name => Info)
+    event_aliases: dict[tuple[str, str], str]   # (instance name, channel name) => original channel name
     event_lock: ReaderWriterLock
 
     # source instance => (source channel => conveyer); used in remote
@@ -96,6 +99,7 @@ class EventManager(BaseEventManager, ChannelCallManagerMixin):
 
     def initialize(self):
         self.events = {}
+        self.event_aliases = {}
         self.event_lock = ReaderWriterLock()
         self.subscriptions_by_source_channel = defaultdict(dict)
         self.subscription_lock = ReaderWriterLock()
@@ -111,6 +115,8 @@ class EventManager(BaseEventManager, ChannelCallManagerMixin):
         self.procedure_provider.add_procedure(
             EVENT_UNSUBSCRIPTION_UNIFED_MESSAGING_CHANNEL, self._on_receive_event_unsubscription_message)
         self.procedure_provider.add_procedure(
+            EVENT_NAME_QUERY_CHANNEL, self._on_receive_event_name_query_message)
+        self.procedure_provider.add_procedure(
             EVENT_DISCONTINUING_UNIFIED_MESSAGE_CHANNEL, self._on_receive_event_discontinuing_message)
         self.role_status_manager.add_callback(Status.STARTING, self._on_role_status_starting)
         self.role_status_manager.add_callback(Status.FINALIZING, self._on_role_status_finalizing)
@@ -120,11 +126,14 @@ class EventManager(BaseEventManager, ChannelCallManagerMixin):
             # register declared event channels
             events = self.events[role.name] = {}
             for channel_name, attribute_name in role.events.items():
-                events[channel_name] = EventInfo()
-                ev = Event(channel_name)
+                original_channel_name = getattr(role, attribute_name).channel_name
+                events[original_channel_name] = EventInfo()
+                ev = Event(original_channel_name)
                 ev.base = self
                 ev.role_name = role.name
                 setattr(role, attribute_name, ev)
+                if channel_name != original_channel_name:
+                    self.event_aliases[(role.name, channel_name)] = original_channel_name
         with self.subscription_listeners_lock:
             # pre-register automatic subscriptions
             for attribute_name in role.subscriptions:
@@ -230,7 +239,49 @@ class EventManager(BaseEventManager, ChannelCallManagerMixin):
             for channel_name, info in events.items():
                 for subscriber_instance_id in info.remote_subscribers.keys():
                     notify_actor_at_most_once(subscriber_instance_id.actor_name, subscriber_instance_id.instance_name)
+            invalid_aliases = [key for key in self.event_aliases if (key[0] == instance_name)]
+            for key in invalid_aliases:
+                del self.event_aliases[key]
         self.logger.info(f'events of role {instance_name} removed')
+
+    def _on_receive_event_name_query_message(self, sender: str, tags: Tags, _: Args, __: Payloads):
+        try:
+            instance_name = tags['instance_name']
+            channel_name = tags['channel_name']
+        except KeyError:
+            raise AssertionError('incomplete event name query')
+        else:
+            if actual_channel_name := self.event_aliases.get((instance_name, channel_name), ""):
+                return actual_channel_name
+            try:
+                events = self.events[instance_name]
+            except KeyError:
+                raise InvocationRefusedError(f'the role {instance_name} is not open')
+            else:
+                if channel_name in events:
+                    return channel_name
+                else:
+                    raise InvocationRefusedError(f'event channel {channel_name} does not exist on role {instance_name}')
+
+    def _get_actual_channel_name(self, target: RoleInstanceID, channel_name: str) -> str:
+        if self._is_local_instance(target):
+            if (actual_channel_name := self.event_aliases.get((target.instance_name, channel_name))):
+                return actual_channel_name
+            else:
+                try:
+                    if channel_name in self.events[target.instance_name]:
+                        return channel_name
+                    else:
+                        raise ChannelNotFoundError(channel_name)
+                except KeyError:
+                    raise NoSuchRoleError(target.instance_name)
+        else:
+            try:
+                return self.procedure_invoker.invoke_procedure(
+                    target.actor_name, EVENT_NAME_QUERY_CHANNEL,
+                    {"instance_name": target.instance_name, "channel_name": channel_name})
+            except Exception as e:
+                raise ChannelNotFoundError(channel_name) from e
 
     def _on_receive_event_discontinuing_message(self, sender: str, tags: Tags, _: Args, __: Payloads):
         try:
@@ -244,6 +295,9 @@ class EventManager(BaseEventManager, ChannelCallManagerMixin):
     def _on_receive_event_discontinuing_message_impl(self, source_actor_name: str, source_instance_name: str):
         with self.subscription_lock.write_lock():
             self.subscriptions_by_source_channel.pop(RoleInstanceID(source_actor_name, source_instance_name))
+
+    def _is_local_instance(self, instance_name: RoleInstanceID) -> bool:
+        return instance_name.actor_name == self.context.profile.name
 
     # region emit
 
@@ -367,18 +421,16 @@ class EventManager(BaseEventManager, ChannelCallManagerMixin):
 
     # region subscription/unsubscription
 
-    def _is_local_instance(self, instance_name: RoleInstanceID) -> bool:
-        return instance_name.actor_name == self.context.profile.name
-
     def subscribe(self, instance_name: str, target: RoleInstanceID, channel_name: str,
                   handler: Callable[[RoleInstanceID, Args, Payloads], Any],
                   *, conditions: Optional[dict[str, Any]] = None, mode: EventSubscriptionMode = 'forever'):
         with self.role_status_manager.ctrl(instance_name).lock_status_for_execute(Status.DECLARED_COMPATIBLE):
             parsed_conditions = parse_conditions(conditions)
+            actual_channel_name = self._get_actual_channel_name(target, channel_name)
             with self.subscription_lock.write_lock():
                 sbs = self.subscriptions_by_source_channel[target]
-                if not (convey_table := sbs.get(channel_name)):
-                    convey_table = sbs[channel_name] = EventConveyTable()
+                if not (convey_table := sbs.get(actual_channel_name)):
+                    convey_table = sbs[actual_channel_name] = EventConveyTable()
                 # subscription is a two-stepper: request and record
                 # the whole process should be atomic, so we need to lock the convey table first
                 with convey_table.lock:
@@ -386,11 +438,11 @@ class EventManager(BaseEventManager, ChannelCallManagerMixin):
                         if self._is_local_instance(target):
                             self._subscribe_local(
                                 instance_name, target.instance_name,
-                                channel_name, handler, parsed_conditions=parsed_conditions, mode=mode)
+                                actual_channel_name, handler, parsed_conditions=parsed_conditions, mode=mode)
                             sequence = -1
                         else:
                             sequence = self._subscribe_remote(
-                                instance_name, target, channel_name, conditions=conditions, mode=mode)
+                                instance_name, target, actual_channel_name, conditions=conditions, mode=mode)
                             assert isinstance(sequence, int)
                     except Exception:   # noqa: using Logger.exception()
                         self.logger.exception(f'failed to subscribe to event {target}/{channel_name}')
@@ -399,11 +451,13 @@ class EventManager(BaseEventManager, ChannelCallManagerMixin):
                         if sequence != 0:
                             convey_table.subscribers[instance_name] \
                                 = EventLocalSubscriberInfo(mode, parsed_conditions, handler, sequence)
-                            self.logger.info(f'subscribed to event {target}/{channel_name}')
+                            self.logger.info(
+                                f'subscribed to event {target}/{actual_channel_name}'
+                                f'{f" ({channel_name} is an alias)" if actual_channel_name != channel_name else ""}')
                         # sequence == 0 means duplicate subscription
                     finally:
                         if not convey_table.subscribers:
-                            del sbs[channel_name]
+                            del sbs[actual_channel_name]
                         if not sbs:
                             del self.subscriptions_by_source_channel[target]
 
@@ -486,22 +540,25 @@ class EventManager(BaseEventManager, ChannelCallManagerMixin):
     def unsubscribe(self, instance_name: str, target: RoleInstanceID, channel_name: str):
         with self.role_status_manager.ctrl(instance_name).acquire_execution(), self.subscription_lock.write_lock():
             sbs = self.subscriptions_by_source_channel[target]
-            if not (convey_table := sbs.get(channel_name)):
+            actual_channel_name = self._get_actual_channel_name(target, channel_name)
+            if not (convey_table := sbs.get(actual_channel_name)):
                 raise RuntimeError(f'role {instance_name} did not subscribe to {target}/{channel_name}')
             with convey_table.lock:
                 try:
                     if self._is_local_instance(target):
-                        self._unsubscribe_local(instance_name, target.instance_name, channel_name)
+                        self._unsubscribe_local(instance_name, target.instance_name, actual_channel_name)
                     else:
-                        self._unsubscribe_remote(instance_name, target, channel_name)
+                        self._unsubscribe_remote(instance_name, target, actual_channel_name)
                 except Exception:
-                    self.logger.exception(f'failed to unsubscribe from event {target}/{channel_name}')
+                    self.logger.exception(
+                        f'failed to unsubscribe from event {target}/{actual_channel_name}'
+                        f'{f" {channel_name} is an alias" if actual_channel_name != channel_name else ""}')
                     raise
                 else:
                     convey_table.subscribers.pop(instance_name, None)
-                    self.logger.info(f'unsubscribed from event {target}/{channel_name}')
+                    self.logger.info(f'unsubscribed from event {target}/{actual_channel_name}')
                     if not convey_table.subscribers:
-                        del sbs[channel_name]
+                        del sbs[actual_channel_name]
                     if not sbs:
                         del self.subscriptions_by_source_channel[target]
 
