@@ -1,5 +1,18 @@
 # RoleML Changelog
 
+## v0.3.1
+
+### The `roleml` Package
+
+* _Feature_: Access permission checks have been applied to more channels of the native role.
+* _Bugfix_: The activation logic of element instance providers are adjusted to prevent skipping the custom constructor unexpectedly.
+* _Bugfix_: Import issue related to compatibility with Python 3.10.
+
+### Others
+
+* _Documentation_: Several minor updates on documents.
+* _Example_: All examples now use the same messaging component implementation by default.
+
 ## v0.3.0 (first published version)
 
 **This version is a major refactor. All existing users of v0.2.x should migrate to this version since older versions will no longer be supported.**

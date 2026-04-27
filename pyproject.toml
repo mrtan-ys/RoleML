@@ -24,6 +24,9 @@ classifiers = [
 ]
 # using automatic package discovery
 
+[project.urls]
+repository = "https://github.com/mrtan-ys/RoleML"
+
 [project.optional-dependencies]
 # example usage: pip install roleml-ai[profiling]
 # communication backends ---------------------------------
