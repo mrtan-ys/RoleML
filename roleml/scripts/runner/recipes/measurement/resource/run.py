@@ -5,30 +5,17 @@ class ResourceMeasurementSession(MeasurementSession):
 
     def __init__(self, filename: str = 'resource.log', app_name: str = 'app'):
         super().__init__(filename, app_name)
-        self.process = None
     
     def start_script(self):
         import os
         import subprocess as sp
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.process = sp.Popen(
+        sp.Popen(
             ['bash', f'{current_dir}/resource.sh', f'{os.getpid()}'],
             cwd=os.getcwd(),
             stdout=self.file,
             stderr=sp.STDOUT,
         )
-
-    def end(self):
-        if self.process is not None:
-            self.process.terminate()
-            try:
-                self.process.wait(timeout=5)
-            except Exception:
-                self.process.kill()
-                self.process.wait()
-            finally:
-                self.process = None
-        super().end()
 
 
 def run_with_resource_measurements(app_name: str = 'dml', **options):
