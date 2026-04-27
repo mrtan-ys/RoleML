@@ -21,7 +21,7 @@ while true; do
         break
     }
 
-    memUsage=$(awk '/VmSize|VmRSS/ {printf "%s %s KiB%s", $1=="VmRSS:"?"RSS":"VSZ", $2, ++n==1?", ":""}' < /proc/${PID}/status) || {
+    memUsage=$(awk '/VmSize|VmRSS/ {printf "%s %s %s%s", $1=="VmRSS:"?"RSS":"VSZ", $2, $3, ++n==1?", ":""}' < /proc/${PID}/status) || {
         echo "Failed to collect memory usage." 
         break
     }
