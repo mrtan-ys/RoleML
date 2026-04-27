@@ -80,6 +80,18 @@ class EventSource(Role, Runnable):
 
 By default, the name of the event channel is the same as the attribute name. You can specify a custom name as `Event("my-custom-name")`. No matter which one to take, all underscores `_` will be replaced by hyphens `-`.
 
+### Channel Aliases
+
+You can create an alias for an existing message channel using the `Alias()` API. This is useful when the meaning of a channel can be interpreted differently. For example:
+
+```python
+class EventSource2(EventSource):
+
+    my_wonderful_event = Alias('my-event')
+```
+
+There is no need to specify the type of channel when declaring an alias. Since `my-event` is an event channel, subscribing to `my-wonderful-event` is equivalent to subscribing to `my-event`.
+
 ## Using Channels
 
 ### Referencing Role Instances via Relationships
