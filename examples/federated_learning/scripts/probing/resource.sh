@@ -2,6 +2,11 @@
 # Please keep this file consistent with the original file
 
 #!/usr/bin/env sh
+if [ ! "${1}" ]; then
+    echo "A PID must be specified!"
+    exit -1
+fi
+
 cleanup() {
     echo "The process has exited or an error has occurred, monitoring done."
     sleep 0.1
@@ -9,23 +14,18 @@ cleanup() {
 
 trap cleanup EXIT TERM INT HUP
 
-
-if [ ! "${1}" ]; then
-    echo "A PID must be specified!"
-    exit -1
-fi
+PID="${1}"
 echo "====== Monitoring CPU and RAM usage ======"
 echo "PID of process to monitor is ${PID}; PID of current script is $$"
-PID="${1}"
-while true; do
 
+while true; do
     cpuUsage=$(top -b -n 1 -p "${PID}" 2>/dev/null | awk -v pid="${PID}" '$1 == pid {print $9; exit}') || {
         echo "Failed to collect CPU usage."
         break
     }
 
-    memUsage=$(ps -p "${PID}" -o rss= -o vsz= | awk 'NR==1 {print "RSS " $1 " KiB; VSZ " $2 " KiB"}') || {
-        echo "Failed to collect memory usage."
+    memUsage=$(awk '/VmSize|VmRSS/ {printf "%s %s KiB%s", $1=="VmRSS:"?"RSS":"VSZ", $2, ++n==1?", ":""}' < /proc/${PID}/status) || {
+        echo "Failed to collect memory usage." 
         break
     }
 
