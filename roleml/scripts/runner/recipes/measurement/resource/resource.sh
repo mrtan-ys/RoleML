@@ -21,10 +21,7 @@ while true; do
         break
     }
 
-    memUsage=$(ps -p "${PID}" -o rss= -o vsz= | awk 'NR==1 {print "RSS " $1 " KiB; VSZ " $2 " KiB"}') || {
-        echo "Failed to collect memory usage."
-        break
-    }
+    memUsage=$(awk '{ORS=" "} /VmSize|VmRSS/ {print $2,$3}' < /proc/${PID}/status)
 
     now=$(date --iso-8601=ns) || {
         echo "Failed to collect timestamp."
