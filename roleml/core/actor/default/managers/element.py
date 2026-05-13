@@ -118,11 +118,7 @@ class ElementInstance(Generic[T, InitializationParams]):
             self._instance = self.initializer(self._instance, *args, **kwargs)
             self.attempt_type_check_if_enabled()
             return self._instance
-        else:
-            if self.loader is None:
-                raise RuntimeError(f"no way to load new object for element {self.name}")
-            self.unload()
-            return self.__load()
+        raise RuntimeError(f"cannot provide initialized object for element {self.name}")
 
 
 class EmptyElementInstance(Generic[T]):
