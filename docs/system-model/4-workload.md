@@ -74,14 +74,13 @@ There are also two APIs operating on the workload object currently in the buffer
 * __`serialize()`__: serialize the workload object.
 * __`unload()`__: remove the workload object from the buffer, and perform any necessary cleanup actions (e.g., closing opened files). This API will also be effectively called when a new workload object is to occupy the buffer (e.g., when `load()` or `initialize(...)` is called).
 
-Besides, the following properties can be accessed to check in advance if calling certain APIs will succeed:
+When instantiating a role, calls to the core APIs mentioned above (`load()`, `initialize(...)`, `serialize()`, `unload()`) rely on proper configurations associated with concrete workloads. To check if such configurations is provided for a certain API, the __`implemented(api_name)`__ API can be used. For example, `implemented('serialize')` checks if the concrete implementation of serialization is configured.
 
-* `implemented`: whether a workload object can be provided for use. That is, it checks to see if the instance has implemented the action for either `load()` or `initialize(...)`, or has a default workload object implementation in element declaration (i.e., [`default` or `default_factory` property](#default-default_factory)).
-* `serializable`: whether it is possible to serialize workload objects. Recommended to access before calling `serialize()` as an exception will be raised if there is no buffered object or the serializer is missing.
+The `implemented(api_name)` API can also be used on `get()` to check if a new workload object can be obtained when the buffer is empty (see below for more detail).
 
 ### Configuring an Element Instance
 
-When instantiating a role, calls to the core APIs mentioned above (`load()`, `initialize(...)`, `serialize()`, `unload()`) rely on proper configurations associated with concrete workloads. Each of these APIs corresponds to a configuration item, which specifies a method to achieve the API's intent. These methods are named _loader_, _initializer_, _serializer_, and _unloader_, respectively.
+Each of the core APIs corresponds to a configuration item, which specifies a method to achieve the API's intent. These methods are named _loader_, _initializer_, _serializer_, and _unloader_, respectively.
 
 Each of these configuration items has the following structure:
 
@@ -145,6 +144,10 @@ Whether an implementation is optional when deploying an instance of the correspo
 
 If an implementation is not explicitly provided (e.g., via the `Actor.implement_element()` API or a configuration file), RoleML will try to make a default implementation out of the property values specified in declaration.
 
-### `require_serializable`
+### `require_methods`
 
-Requires that a serializer must be provided. If the serializer is missing, the whole role instance will be deemed unusable and attempting to add the role instance to an actor will result in failure. Defaults to False.
+Methods whose underlying implementation must be provided for a role instance before its successful deployment. If any required implementation missing, the whole role instance will be deemed unusable and attempting to add the role instance to an actor will result in failure.
+
+Methods are specified as a set of names chosen from the following options: `load`, `initialize`, `serialize`, `unload`, `get`.
+
+Note implementation provision is not always equivalent to successful call of the corresponding methods. For example, a missing _unloader_ will not make `unload()` fail, and `serialize()` will fail if there is no workload object in the buffer.
