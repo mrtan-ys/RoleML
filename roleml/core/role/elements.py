@@ -1,6 +1,6 @@
-from dataclasses import dataclass, KW_ONLY
+from dataclasses import dataclass, field, KW_ONLY
 from types import UnionType
-from typing import Any, Callable, Concatenate, Generic, Optional
+from typing import Any, Callable, Concatenate, Generic, Literal, Optional
 from typing_extensions import ParamSpec
 
 from roleml.shared.types import T
@@ -8,8 +8,10 @@ from roleml.shared.types import T
 __all__ = ['Element', 'InitializationParams']
 
 
-InitializationParams = ParamSpec('InitializationParams', default=...)   # mainly for type hints
 IsInstanceArg = type[Any] | UnionType | tuple["IsInstanceArg", ...]
+
+InitializationParams = ParamSpec('InitializationParams', default=...)   # mainly for type hints
+MethodName = Literal["load", "initialize", "serialize", "unload", "get"]
 
 
 @dataclass
@@ -28,8 +30,7 @@ class Element(Generic[T, InitializationParams]):
     type_check: bool = False    # disabled by default to prevent invalid isinstance() calls
     type_check_fallback: Optional[IsInstanceArg] = None
 
-    @property
-    def implemented(self) -> bool:
+    def implemented(self, method_name: MethodName, /) -> bool:
         raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`
 
     def load(self) -> T:
@@ -44,11 +45,7 @@ class Element(Generic[T, InitializationParams]):
     def get(self) -> T:
         raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`
 
-    require_serializable: bool = False
-
-    @property
-    def serializable(self) -> bool:
-        raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`
+    require_methods: set[MethodName] = field(default_factory=set)
 
     def serialize(self):
         raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`

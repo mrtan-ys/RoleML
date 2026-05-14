@@ -36,7 +36,7 @@ class BaseModelMaintainer(Role):
     def test(self, _) -> dict[str, Any]:
         with self.lock:
             model = self.model.get()
-            if self.dataset_test.implemented and isinstance(model, Testable):
+            if self.dataset_test.implemented('get') and isinstance(model, Testable):
                 metrics = model.test(self.dataset_test.get())
                 self.test_completed.emit(args=metrics)
                 return metrics

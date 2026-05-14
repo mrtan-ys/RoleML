@@ -44,6 +44,6 @@ class AllReduceGlobalCoordinator(Role):
             current_model = self.call(trainers[0], 'get-model')
             model.set_params(current_model)
             self.logger.info(f'round {i + 1} completed')
-            if self.dataset_test.implemented:
+            if self.dataset_test.implemented('get'):
                 test_result = model.test(self.dataset_test.get())
                 self.logger.info(f'round {i + 1} test result is: {test_result}')

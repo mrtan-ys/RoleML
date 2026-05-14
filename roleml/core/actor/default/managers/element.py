@@ -4,7 +4,7 @@ from typing import Generic, Optional
 
 from roleml.core.actor.manager.bases.elements import BaseElementManager, ElementImplementation, SetupWithElement
 from roleml.core.role.base import Role
-from roleml.core.role.elements import Element, InitializationParams
+from roleml.core.role.elements import Element, InitializationParams, MethodName
 from roleml.core.status import Status
 from roleml.shared.types import T
 
@@ -25,7 +25,7 @@ class ElementInstance(Generic[T, InitializationParams]):
         self.optional = element.optional
         self.type_check = element.type_check
         self.type_check_fallback = element.type_check_fallback
-        self.require_serializable = element.require_serializable
+        self.require_methods = element.require_methods.copy()
 
         if impl.eager_load:
             if impl.loader is not None:
@@ -45,13 +45,30 @@ class ElementInstance(Generic[T, InitializationParams]):
         for component in (self.loader, self.serializer, self.initializer, self.unloader):
             if isinstance(component, SetupWithElement):
                 component.setup(element)
-        
-        if element.require_serializable and not self.serializable:
-            raise RuntimeError(f'element {self.name} is not serializable as required')
 
-    @property
-    def implemented(self) -> bool:
-        return (self._instance is not None) or (self.loader is not None) or (self.initializer is not None)
+        if (unimplemented := self.check_unimplemented_required()):
+            raise RuntimeError(
+                f'not all required methods are implemented for element {self.name}, missing: {unimplemented!s}')
+
+    def implemented(self, method_name: MethodName, /) -> bool:
+        match method_name:
+            case 'load':
+                return self.implemented_load
+            case 'initialize':
+                return self.implemented_initialize
+            case 'serialize':
+                return self.implemented_serialize
+            case 'unload':
+                return self.implemented_unload
+            case 'get':
+                return self.implemented_get
+
+    def check_unimplemented_required(self) -> set[MethodName]:
+        unimplemented = set()
+        for method_name in self.require_methods:
+            if not self.implemented(method_name):
+                unimplemented.add(method_name)
+        return unimplemented
 
     def attempt_type_check_if_enabled(self):
         if self.type_check and self._instance is not None:
@@ -79,12 +96,20 @@ class ElementInstance(Generic[T, InitializationParams]):
     def __call__(self) -> T:
         return self.load()
 
+    @property
+    def implemented_load(self) -> bool:
+        return self.loader is not None
+
     def unload(self):
         if self._instance is None:
             raise RuntimeError(f"nothing to unload in element {self.name}")
         if self.unloader is not None:
             self.unloader(self._instance)
         self._instance = None
+
+    @property
+    def implemented_unload(self) -> bool:
+        return self.unloader is not None
 
     def get(self) -> T:
         if self._instance is not None:
@@ -101,8 +126,8 @@ class ElementInstance(Generic[T, InitializationParams]):
         raise RuntimeError(f"cannot get object for element {self.name}")
 
     @property
-    def serializable(self) -> bool:
-        return self.serializer is not None
+    def implemented_get(self) -> bool:
+        return self.loader is not None or self.default_factory is not None or self.default is not None
 
     def serialize(self):
         if self.serializer is not None:
@@ -113,12 +138,20 @@ class ElementInstance(Generic[T, InitializationParams]):
         else:
             raise RuntimeError(f"no way to serialize object for element {self.name}")
 
+    @property
+    def implemented_serialize(self) -> bool:
+        return self.serializer is not None
+
     def initialize(self, *args: InitializationParams.args, **kwargs: InitializationParams.kwargs) -> T:
         if self.initializer is not None:
             self._instance = self.initializer(self._instance, *args, **kwargs)
             self.attempt_type_check_if_enabled()
             return self._instance
         raise RuntimeError(f"cannot provide initialized object for element {self.name}")
+
+    @property
+    def implemented_initialize(self) -> bool:
+        return self.initializer is not None
 
 
 class EmptyElementInstance(Generic[T]):
@@ -131,16 +164,13 @@ class EmptyElementInstance(Generic[T]):
         self.optional = element.optional
         self.type_check = element.type_check
         self.type_check_fallback = element.type_check_fallback
-        self.require_serializable = element.require_serializable
+        self.require_methods = element.require_methods.copy()
 
-    @property
-    def implemented(self) -> bool: return False
+    def implemented(self, method_name: MethodName, /) -> bool: return False
     def load(self) -> T: raise RuntimeError(f"element {self.name} not available")
     def __call__(self) -> T: return self.load()
     def unload(self): raise RuntimeError(f"element {self.name} not available")
     def get(self) -> T: raise RuntimeError(f"element {self.name} not available")
-    @property
-    def serializable(self) -> bool: return False
     def serialize(self): raise RuntimeError(f"element {self.name} not available")
     def initialize(self, *args, **kwargs) -> T: raise RuntimeError(f"element {self.name} not available")
 
@@ -184,15 +214,8 @@ class ElementManager(BaseElementManager):
                             self.logger.error(f'role {instance_name} is unusable as element {element_name} is required')
                             raise
                     else:
-                        if not element_instance.implemented and not element.optional:
-                            self.logger.error(
-                                f'element {element_name} is not properly implemented for role '
-                                f'{instance_name}, instance is of type {type(element_instance._instance)}')
-                            self.logger.error(f'role {instance_name} is unusable as element {element_name} is required')
-                            raise RuntimeError(f'required element {element_name} of role {instance_name} unimplemented')
-                        else:
-                            self.logger.info(f'element {element_name} of role {instance_name} implemented as default')
-                            setattr(role, attribute_name, element_instance)
+                        self.logger.info(f'element {element_name} of role {instance_name} implemented as default')
+                        setattr(role, attribute_name, element_instance)
 
     def _on_role_status_finalizing(self, instance_name: str, _):
         with self.lock:
@@ -200,7 +223,7 @@ class ElementManager(BaseElementManager):
             for element_name, attribute_name in role.__class__.elements.items():
                 el = getattr(role, attribute_name)
                 if isinstance(el, ElementInstance):
-                    if el.serializable:
+                    if el.implemented('serialize'):
                         try:
                             el.serialize()  # TODO consider adding a `serialize_on_finalizing` option
                         except Exception as e:
