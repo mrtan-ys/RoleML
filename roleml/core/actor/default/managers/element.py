@@ -100,16 +100,16 @@ class ElementInstance(Generic[T, InitializationParams]):
     def implemented_load(self) -> bool:
         return self.loader is not None
 
-    def unload(self):
-        if self._instance is None:
-            raise RuntimeError(f"nothing to unload in element {self.name}")
-        if self.unloader is not None:
-            self.unloader(self._instance)
-        self._instance = None
+    def initialize(self, *args: InitializationParams.args, **kwargs: InitializationParams.kwargs) -> T:
+        if self.initializer is not None:
+            self._instance = self.initializer(self._instance, *args, **kwargs)
+            self.attempt_type_check_if_enabled()
+            return self._instance
+        raise RuntimeError(f"cannot provide initialized object for element {self.name}")
 
     @property
-    def implemented_unload(self) -> bool:
-        return self.unloader is not None
+    def implemented_initialize(self) -> bool:
+        return self.initializer is not None
 
     def get(self) -> T:
         if self._instance is not None:
@@ -137,22 +137,20 @@ class ElementInstance(Generic[T, InitializationParams]):
                 raise RuntimeError(f"no object to serialize for element {self.name}")
         else:
             raise RuntimeError(f"no way to serialize object for element {self.name}")
-
     @property
     def implemented_serialize(self) -> bool:
         return self.serializer is not None
 
-    def initialize(self, *args: InitializationParams.args, **kwargs: InitializationParams.kwargs) -> T:
-        if self.initializer is not None:
-            self._instance = self.initializer(self._instance, *args, **kwargs)
-            self.attempt_type_check_if_enabled()
-            return self._instance
-        raise RuntimeError(f"cannot provide initialized object for element {self.name}")
+    def unload(self):
+        if self._instance is None:
+            raise RuntimeError(f"nothing to unload in element {self.name}")
+        if self.unloader is not None:
+            self.unloader(self._instance)
+        self._instance = None
 
     @property
-    def implemented_initialize(self) -> bool:
-        return self.initializer is not None
-
+    def implemented_unload(self) -> bool:
+        return self.unloader is not None
 
 class EmptyElementInstance(Generic[T]):
 
@@ -169,10 +167,10 @@ class EmptyElementInstance(Generic[T]):
     def implemented(self, method_name: MethodName, /) -> bool: return False
     def load(self) -> T: raise RuntimeError(f"element {self.name} not available")
     def __call__(self) -> T: return self.load()
-    def unload(self): raise RuntimeError(f"element {self.name} not available")
+    def initialize(self, *args, **kwargs) -> T: raise RuntimeError(f"element {self.name} not available")
     def get(self) -> T: raise RuntimeError(f"element {self.name} not available")
     def serialize(self): raise RuntimeError(f"element {self.name} not available")
-    def initialize(self, *args, **kwargs) -> T: raise RuntimeError(f"element {self.name} not available")
+    def unload(self): raise RuntimeError(f"element {self.name} not available")
 
 
 class ElementManager(BaseElementManager):

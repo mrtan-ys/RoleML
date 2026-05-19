@@ -30,6 +30,8 @@ class Element(Generic[T, InitializationParams]):
     type_check: bool = False    # disabled by default to prevent invalid isinstance() calls
     type_check_fallback: Optional[IsInstanceArg] = None
 
+    require_methods: set[MethodName] = field(default_factory=set)
+
     def implemented(self, method_name: MethodName, /) -> bool:
         raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`
 
@@ -39,16 +41,14 @@ class Element(Generic[T, InitializationParams]):
     def __call__(self) -> T:
         return self.load()
 
-    def unload(self):
+    def initialize(self, *args: InitializationParams.args, **kwargs: InitializationParams.kwargs) -> T:
         raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`
 
     def get(self) -> T:
         raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`
 
-    require_methods: set[MethodName] = field(default_factory=set)
-
     def serialize(self):
         raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`
 
-    def initialize(self, *args: InitializationParams.args, **kwargs: InitializationParams.kwargs) -> T:
+    def unload(self):
         raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`
