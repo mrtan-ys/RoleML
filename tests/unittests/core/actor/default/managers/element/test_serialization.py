@@ -38,7 +38,7 @@ class DefaultElementManagerSerializationTestCase(DefaultActorManagersTestCase):
         self.actorA.add_role('data-holder', DataHolder())
         self.actorA.implement_element(
             'data-holder', 'data',
-            ElementImplementation(loader=lambda: self.data, serializer=serializer, eager_load=True))
+            ElementImplementation(loader=lambda: self.data, checkpointer=serializer, eager_load=True))
         self.actorA.start_role('data-holder')
         self.actorA.stop()
 

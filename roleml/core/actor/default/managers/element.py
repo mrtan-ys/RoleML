@@ -38,11 +38,11 @@ class ElementInstance(Generic[T, InitializationParams]):
             self.attempt_type_check_if_enabled()
 
         self.loader = impl.loader if impl.loader is not None else element.default_factory
-        self.serializer = impl.serializer
+        self.checkpointer = impl.checkpointer
         self.initializer = impl.initializer if impl.initializer is not None else element.default_initializer
         self.unloader = impl.unloader
 
-        for component in (self.loader, self.serializer, self.initializer, self.unloader):
+        for component in (self.loader, self.checkpointer, self.initializer, self.unloader):
             if isinstance(component, SetupWithElement):
                 component.setup(element)
 
@@ -56,8 +56,8 @@ class ElementInstance(Generic[T, InitializationParams]):
                 return self.implemented_load
             case 'initialize':
                 return self.implemented_initialize
-            case 'serialize':
-                return self.implemented_serialize
+            case 'checkpoint':
+                return self.implemented_checkpoint
             case 'unload':
                 return self.implemented_unload
             case 'get':
@@ -129,17 +129,17 @@ class ElementInstance(Generic[T, InitializationParams]):
     def implemented_get(self) -> bool:
         return self.loader is not None or self.default_factory is not None or self.default is not None
 
-    def serialize(self):
-        if self.serializer is not None:
+    def checkpoint(self):
+        if self.checkpointer is not None:
             if self._instance is not None:
-                self.serializer(self._instance)
+                self.checkpointer(self._instance)
             else:
-                raise RuntimeError(f"no object to serialize for element {self.name}")
+                raise RuntimeError(f"no object to checkpoint for element {self.name}")
         else:
-            raise RuntimeError(f"no way to serialize object for element {self.name}")
+            raise RuntimeError(f"no way to checkpoint object for element {self.name}")
     @property
-    def implemented_serialize(self) -> bool:
-        return self.serializer is not None
+    def implemented_checkpoint(self) -> bool:
+        return self.checkpointer is not None
 
     def unload(self):
         if self._instance is None:
@@ -169,7 +169,7 @@ class EmptyElementInstance(Generic[T]):
     def __call__(self) -> T: return self.load()
     def initialize(self, *args, **kwargs) -> T: raise RuntimeError(f"element {self.name} not available")
     def get(self) -> T: raise RuntimeError(f"element {self.name} not available")
-    def serialize(self): raise RuntimeError(f"element {self.name} not available")
+    def checkpoint(self): raise RuntimeError(f"element {self.name} not available")
     def unload(self): raise RuntimeError(f"element {self.name} not available")
 
 
@@ -221,13 +221,13 @@ class ElementManager(BaseElementManager):
             for element_name, attribute_name in role.__class__.elements.items():
                 el = getattr(role, attribute_name)
                 if isinstance(el, ElementInstance):
-                    if el.implemented('serialize'):
+                    if el.implemented('checkpoint'):
                         try:
-                            el.serialize()  # TODO consider adding a `serialize_on_finalizing` option
+                            el.checkpoint()  # TODO consider adding a `checkpoint_on_finalizing` option
                         except Exception as e:
-                            self.logger.warning(f'cannot serialize element {el.name} when finalizing')
+                            self.logger.warning(f'cannot checkpoint element {el.name} when finalizing')
                         else:
-                            self.logger.info(f'element {element_name} of role {instance_name} has been serialized')
+                            self.logger.info(f'element {element_name} of role {instance_name} has been checkpointed')
                     el.unload()
                     self.logger.info(f'element {element_name} of role {instance_name} has been unloaded')
             del self.roles[instance_name]

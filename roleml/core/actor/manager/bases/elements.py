@@ -8,7 +8,7 @@ from roleml.shared.types import T
 
 
 ElementLoader: TypeAlias = Callable[[], T]
-ElementSerializer: TypeAlias = Callable[[T], None]
+ElementCheckpointer: TypeAlias = Callable[[T], None]
 ElementInitializer: TypeAlias = Callable[Concatenate[Optional[T], ...], T]
 ElementUnloader: TypeAlias = Callable[[T], None]
 
@@ -17,7 +17,7 @@ ElementUnloader: TypeAlias = Callable[[T], None]
 class ElementImplementation(Generic[T]):
 
     loader: Optional[ElementLoader[T]] = None
-    serializer: Optional[ElementSerializer] = None
+    checkpointer: Optional[ElementCheckpointer] = None
     initializer: Optional[ElementInitializer] = None
     unloader: Optional[ElementUnloader] = None
 

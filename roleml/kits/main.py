@@ -4,7 +4,7 @@ from roleml.core.actor.default.bootstrap import ActorBuilder
 from roleml.core.actor.default.impl import Actor
 from roleml.core.builders.actor import LogConsoleType, ActorBootstrapSpec
 from roleml.core.builders.element import ElementImplementationSpec, \
-    loader_methods, serializer_methods, initializer_methods, unloader_methods
+    loader_methods, checkpointer_methods, initializer_methods, unloader_methods
 from roleml.core.builders.role import RoleDescriptor, RoleSpec
 from roleml.core.context import RoleInstanceID, RoleInstanceIDTuple
 from roleml.core.role.base import Role as Role
@@ -17,7 +17,7 @@ __all__ = [
     'BaseActor',
     'ActorBuilder', 'Actor',
     'ActorBootstrapSpec', 'LogConsoleType',
-    'ElementImplementationSpec', 'loader_methods', 'serializer_methods', 'initializer_methods', 'unloader_methods',
+    'ElementImplementationSpec', 'loader_methods', 'checkpointer_methods', 'initializer_methods', 'unloader_methods',
     'RoleDescriptor', 'RoleSpec',
     'RoleInstanceID', 'RoleInstanceIDTuple',
     'Role',

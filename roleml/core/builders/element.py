@@ -96,7 +96,7 @@ loader_methods: MethodStore[Callable[..., Callable[[], Any]]] = MethodStore('loa
 })
 
 
-# region built-in serializer methods
+# region built-in checkpointer methods
 
 class PickleSerializer(Generic[T]):
 
@@ -128,7 +128,7 @@ class JsonSerializer(Generic[T]):
 # endregion
 
 
-serializer_methods: MethodStore[Callable[..., Callable[[Any], None]]] = MethodStore('serializer', {
+checkpointer_methods: MethodStore[Callable[..., Callable[[Any], None]]] = MethodStore('checkpointer', {
     'pickle': PickleSerializer,
     'json': JsonSerializer,
 })
@@ -200,7 +200,7 @@ ElementImplementationComponentSpec = TypedDict(
 
 class ElementImplementationSpec(TypedDict, total=False):
     loader: ElementImplementationComponentSpec
-    serializer: ElementImplementationComponentSpec
+    checkpointer: ElementImplementationComponentSpec
     initializer: ElementImplementationComponentSpec
     unloader: ElementImplementationComponentSpec
     eager_load: bool
