@@ -91,6 +91,13 @@ class RoleRuntime(BaseActor):
             "manager",
             RoleInstanceID(profile.name, "actor"),
         )
+        # In containerized mode, node-level control operations such as
+        # `call('/', ...)` should resolve to the node controller actor on the
+        # host rather than this runtime's local native actor.
+        controller_address = self.ctx.contacts.get_actor_profile(profile.name).address
+        self.ctx.contacts.add_contact(
+            ActorProfile("__node_controller", controller_address)
+        )
 
         self._actor_started_callback: list[Callable[[], Any]] = []
 
@@ -129,6 +136,12 @@ class RoleRuntime(BaseActor):
 
         # replace controller's contact with new one
         self.ctx.contacts.add_contact(new_profile)
+        self.ctx.contacts.add_contact(
+            ActorProfile(
+                "__node_controller",
+                self.ctx.contacts.get_actor_profile(new_profile.name).address,
+            )
+        )
 
         self.ctx.relationships.remove_from_relationship(
             "manager", *self.ctx.relationships.get_relationship("manager")
@@ -171,6 +184,8 @@ class RoleRuntime(BaseActor):
     def convert_relationship_to_instance(
         self, relationship_name: str
     ) -> RoleInstanceID:
+        if relationship_name == "/":
+            return RoleInstanceID("__node_controller", "actor")
         target_instance = None
         for target_instance in self.ctx.relationships.get_relationship(
             relationship_name

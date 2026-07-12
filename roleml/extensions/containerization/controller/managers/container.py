@@ -9,6 +9,7 @@ import docker
 import docker.models
 import docker.models.containers
 import requests
+from requests import ConnectionError as RequestsConnectionError
 
 from roleml.core.actor.manager import BaseManager
 from roleml.core.builders.role import RoleConfig, RoleSpec
@@ -234,13 +235,12 @@ class ContainerManager(BaseManager, ContainerInvocationMixin):
             f"runner.run({self.RUNTIME_SETUP_PORT_IN_CONTAINER})",
         )
         py_script = "; ".join(py_script)
-        cmd = (
+        cmd = [
             "python",
             "-u",
             "-c",
-            f'"{py_script}"',
-        )
-        cmd = " ".join(cmd)
+            py_script,
+        ]
 
         self.logger.info(f"Creating container {container_name}")
         if use_run:
@@ -272,10 +272,33 @@ class ContainerManager(BaseManager, ContainerInvocationMixin):
         container_name = self._instance_name_to_container_name[instance_name]
         container = self._container_service.get_container(container_name)
         assert container is not None
-        container.reload()
-        self._instance_name_to_container_ip[instance_name] = container.attrs[
-            "NetworkSettings"
-        ]["IPAddress"]
+        for _ in range(20):
+            container.reload()
+            if ip_address := self._extract_container_ip(container.attrs):
+                self._instance_name_to_container_ip[instance_name] = ip_address
+                return
+            time.sleep(0.25)
+
+        state = container.attrs.get("State", {})
+        network_settings = container.attrs.get("NetworkSettings", {})
+        network_names = list((network_settings.get("Networks") or {}).keys())
+        raise RuntimeError(
+            f"Container {container_name} has no assigned IP address "
+            f"(status={state.get('Status')}, exit_code={state.get('ExitCode')}, "
+            f"networks={network_names})"
+        )
+
+    @staticmethod
+    def _extract_container_ip(attrs: dict) -> str | None:
+        network_settings = attrs.get("NetworkSettings") or {}
+        if ip_address := network_settings.get("IPAddress"):
+            return ip_address
+
+        for network in (network_settings.get("Networks") or {}).values():
+            if ip_address := network.get("IPAddress"):
+                return ip_address
+
+        return None
 
     def _convert_loopback_to_host(self, address: str):
         ip, port_str = address.split(":")
@@ -341,10 +364,32 @@ class ContainerManager(BaseManager, ContainerInvocationMixin):
             None  # disable logging to file, logs will be sent to the LogManager
         )
 
-        resp = requests.post(
-            f"http://{self._instance_name_to_container_ip[instance_name]}:{self.RUNTIME_SETUP_PORT_IN_CONTAINER}/setup",
-            json={"instance_name": instance_name, "config": runtime_actor_spec},
+        setup_url = (
+            f"http://{self._instance_name_to_container_ip[instance_name]}:"
+            f"{self.RUNTIME_SETUP_PORT_IN_CONTAINER}/setup"
         )
+        resp = None
+        last_error: RequestsConnectionError | None = None
+        for attempt in range(30):
+            try:
+                resp = requests.post(
+                    setup_url,
+                    json={"instance_name": instance_name, "config": runtime_actor_spec},
+                    timeout=(2, 300),
+                )
+                break
+            except RequestsConnectionError as e:
+                last_error = e
+                self.logger.debug(
+                    f"Waiting for setup server of role {instance_name} "
+                    f"({attempt + 1}/30): {e}"
+                )
+                time.sleep(1)
+        if resp is None:
+            raise RuntimeError(
+                f"Failed to connect to setup server of role {instance_name} "
+                f"at {setup_url}"
+            ) from last_error
         if resp.status_code != 200:
             try:
                 data = resp.json()
