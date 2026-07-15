@@ -1,4 +1,4 @@
 <<: !include ./topo/default.yaml
 profiles: !include ./nodes/rpi-single.yaml profiles
 profiles_individual: !include ./nodes/rpi-single.yaml profiles_individual
-roles: !include ./roles/fedavg.yaml
+roles: !include ./roles/fedavg/lenet-5-with-cifar-10.yaml

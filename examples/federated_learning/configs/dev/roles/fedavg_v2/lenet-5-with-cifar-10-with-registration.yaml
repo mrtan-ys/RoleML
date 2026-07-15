@@ -68,4 +68,4 @@ server:
       min_clients: 10
       max_seconds: 3600
       # FL run config
-      <<: !include ../runs/default.yaml fl_config
+      <<: !include ../../runs/default.yaml fl_config
