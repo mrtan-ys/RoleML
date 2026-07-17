@@ -4,7 +4,7 @@ This guide will lead you through the process of running the Federated Learning e
 
 ## Prepare the Environment
 
-RoleML is developed with Python 3.10. We expect the minimal version to run RoleML to be >= 3.9. For this quickstart, we will use a lightweight model-dataset combination: LeNet-5 (tailored for RGB) & CIFAR-10.
+RoleML requires Python 3.11 or higher. For this quickstart, we will use a lightweight model-dataset combination: LeNet-5 (tailored for RGB) & CIFAR-10.
 
 1. Install RoleML if you have not done it yet. For this example, we also need `torch`, `torchvision` and `numpy`. Please refer to [PyTorch's official website](https://pytorch.org/get-started/locally/) for the best commands to install them.
 
