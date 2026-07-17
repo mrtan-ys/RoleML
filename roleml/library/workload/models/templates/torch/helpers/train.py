@@ -28,4 +28,4 @@ def default_xy_train(
         optimizer.step()
         total_loss += loss.item()   # loss.item() returns a Python float
         batch_count += 1
-    return {'loss': total_loss / batch_count}
+    return {'loss': total_loss / batch_count, 'batches': batch_count}
