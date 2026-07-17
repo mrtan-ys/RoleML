@@ -2,29 +2,7 @@
 client.*:
   trainer:
     class: federated_learning.roles.trainer.MyEpochTrainer
-    impl:
-      model:
-        loader:
-          method: factory
-          target: federated_learning.workload.lenet_5.MyLeNet5RGBModel
-          args:
-            lr: 0.01
-            device: cpu
-            num_threads: 4
-      dataset:
-        loader:
-          method: factory
-          target: roleml.library.workload.datasets.views.DatasetViewFactory
-          args:
-            dataset:
-              type: federated_learning.workload.cifar_10.MyCiFar10SlicedDataset
-              options:
-                root: /home/roleml/datasets/cifar-10/sliced
-                index: $c[4-20]
-            converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
-            sampler: sequential
-            batch_size: 32
-            combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
+    impl: !include ../workload/lenet-5-with-cifar-10/client.yaml
   # for handshake; make sure it is deployed last
   initiator:
     class: federated_learning.roles.handshake.client.MyClientInitiator
@@ -38,24 +16,7 @@ server:
           target: roleml.library.workload.util.collections.merger.torch.WeightedTorchStateDictAverager
   coordinator:
     class: federated_learning.roles.coordinator.FLCoordinator
-    impl:
-      model:
-        loader:
-          method: factory
-          target: federated_learning.workload.lenet_5.MyLeNet5RGBModel
-      dataset:
-        loader:
-          method: factory
-          target: roleml.library.workload.datasets.views.DatasetViewFactory
-          args:
-            dataset:
-              type: federated_learning.workload.cifar_10.MyCiFar10Dataset
-              options:
-                root: /home/roleml/datasets/cifar-10
-                part: test
-            converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
-            sampler: sequential
-            combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
+    impl: !include ../workload/lenet-5-with-cifar-10/client.yaml
   client-selector:
     class: federated_learning.roles.client_selector.ClientSelector
   configurator:
