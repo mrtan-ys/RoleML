@@ -62,6 +62,7 @@ class EpochTrainer(BaseModelMaintainer):
             data_size = len(dataset) if isinstance(dataset, Sized) else 0
             return {
                 'update': self.model.get().get_params(),
+                'num_epochs': num_epochs,
                 'data_size': data_size,
                 'metrics': metrics
             }
