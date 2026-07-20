@@ -4,6 +4,7 @@ import logging
 import logging.handlers
 from pathlib import Path
 from typing import Optional, cast
+from typing import TYPE_CHECKING
 from typing_extensions import override
 import warnings
 
@@ -17,10 +18,12 @@ from roleml.core.context import Context, RoleInstanceID
 from roleml.core.messaging.base import ProcedureInvoker
 from roleml.extensions.containerization.builders.role import ContainerizedRoleBuilder
 from roleml.extensions.containerization.builders.spec import ActorBootstrapSpec, ContainerizationConfig
-from roleml.extensions.containerization.controller.impl import NodeController
 from roleml.extensions.containerization.runtime.impl import RoleRuntime
 from roleml.extensions.containerization.runtime.managers.wrapper import ProcedureInvokerWrapper
 from roleml.extensions.containerization.runtime.wrapper import ContextProxy
+
+if TYPE_CHECKING:
+    from roleml.extensions.containerization.controller.impl import NodeController
 
 
 __all__ = ["NodeControllerBuilder", "RoleRuntimeBuilder"]
@@ -80,6 +83,8 @@ class NodeControllerBuilder(BaseActorBuilder[BaseActor]):
 
     @override
     def _create_actor(self, ctx: Context, handshakes: Optional[list[str]]) -> BaseActor:
+        from roleml.extensions.containerization.controller.impl import NodeController
+
         actor = NodeController(
             self.profile,
             context=ctx,
