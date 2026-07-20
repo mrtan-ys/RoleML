@@ -20,7 +20,7 @@ server:
   client-selector:
     class: federated_learning.roles.client_selector.ClientSelector
   configurator:
-    class: federated_learning.roles.fedavg.v2.configurator.ClientConfigurator
+    class: federated_learning.roles.fedavg.configurator.ClientConfigurator
   # for handshake (and call Coordinator)
   initiator:
     class: federated_learning.roles.handshake.server.MyServerInitiator
