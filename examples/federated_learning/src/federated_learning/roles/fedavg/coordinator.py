@@ -1,4 +1,5 @@
 from typing import Optional
+from roleml.core.actor.group.makers import Relationship
 from roleml.core.role.base import Role
 
 from roleml.core.role.channels import Event, Task
@@ -8,6 +9,10 @@ from roleml.library.workload.models.bases import TestableModel
 
 
 class FLCoordinator(Role):
+
+    def __init__(self, deliver_final_model: bool = False):
+        super().__init__()
+        self.deliver_final_model = deliver_final_model
 
     model = Element(TestableModel)  # type: Element[TestableModel]
     dataset = Element(IterableDataset, optional=True)
@@ -37,5 +42,8 @@ class FLCoordinator(Role):
                 test_result = model.test(dataset)
                 self.logger.info(f'round {i} test result is: {test_result}')
                 self.round_completed.emit(args={'round': i, 'result': test_result})
+        if self.deliver_final_model:
+            self.call_group(Relationship('client').targets, 'apply-update', payloads={'update': model.get_params()})
+            self.logger.info('final model delivered to all clients')
         self.fl_completed.emit()
         self.logger.info('FL is done!!!!')
