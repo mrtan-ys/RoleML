@@ -1,26 +1,26 @@
 # affects batch nodes (started on current machine)
 client.*:
   trainer:
-    class: federated_learning.roles.trainer.MyEpochTrainer
+    class: federated_learning.roles.fedavg.trainer.MyEpochTrainer
     impl: !include ../workload/lenet-5-with-cifar-10/client.yaml
   # for handshake; make sure it is deployed last
   initiator:
     class: federated_learning.roles.handshake.client.MyClientInitiator
 server:
   aggregator:
-    class: federated_learning.roles.fedavg_v2.aggregator.WeightedCollectiveAggregator
+    class: federated_learning.roles.fedavg.v2.aggregator.WeightedCollectiveAggregator
     impl:
       merger:
         initializer:
           method: factory
           target: roleml.library.workload.util.collections.merger.torch.WeightedTorchStateDictAverager
   coordinator:
-    class: federated_learning.roles.coordinator.FLCoordinator
+    class: federated_learning.roles.fedavg.coordinator.FLCoordinator
     impl: !include ../workload/lenet-5-with-cifar-10/client.yaml
   client-selector:
     class: federated_learning.roles.client_selector.ClientSelector
   configurator:
-    class: federated_learning.roles.fedavg_v2.configurator.ClientConfigurator
+    class: federated_learning.roles.fedavg.v2.configurator.ClientConfigurator
   # for handshake (and call Coordinator)
   initiator:
     class: federated_learning.roles.handshake.server.MyServerInitiator

@@ -1,20 +1,20 @@
 # affects batch nodes (started on current machine)
 client.*:
   trainer:
-    class: federated_learning.roles.trainer.MyEpochTrainer
+    class: federated_learning.roles.fedavg.trainer.MyEpochTrainer
     impl: !include ../workload/lenet-5-with-cifar-10/client.yaml
 server:
   aggregator:
-    class: federated_learning.roles.fedavg.aggregator.CollectiveAggregator
+    class: federated_learning.roles.fedavg.v1.aggregator.CollectiveAggregator
     impl:
       merger:
         loader:
           method: factory
           target: roleml.library.workload.util.collections.merger.torch.TorchStateDictAverager
   coordinator:
-    class: federated_learning.roles.coordinator.FLCoordinator
+    class: federated_learning.roles.fedavg.coordinator.FLCoordinator
     impl: !include ../workload/lenet-5-with-cifar-10/server.yaml
   client-selector:
     class: federated_learning.roles.client_selector.ClientSelector
   configurator:
-    class: federated_learning.roles.fedavg.configurator.ClientConfigurator
+    class: federated_learning.roles.fedavg.v1.configurator.ClientConfigurator

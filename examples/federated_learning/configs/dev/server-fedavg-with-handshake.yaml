@@ -29,14 +29,14 @@ roles:
       count: 1
   # FL server roles
   aggregator:
-    class: federated_learning.roles.fedavg.aggregator.CollectiveAggregator
+    class: federated_learning.roles.fedavg.v1.aggregator.CollectiveAggregator
     impl:
       merger:
         loader:
           method: factory
           target: roleml.library.workload.util.collections.merger.torch.TorchStateDictAverager
   coordinator:
-    class: federated_learning.roles.coordinator.FLCoordinator
+    class: federated_learning.roles.fedavg.coordinator.FLCoordinator
     impl:
       model:
         loader:
@@ -58,4 +58,4 @@ roles:
   client-selector:
     class: federated_learning.roles.client_selector.ClientSelector
   configurator:
-    class: federated_learning.roles.fedavg.configurator.ClientConfigurator
+    class: federated_learning.roles.fedavg.v1.configurator.ClientConfigurator

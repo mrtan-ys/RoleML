@@ -14,7 +14,7 @@ log_console_type: single
 debug: true
 roles:
   trainer:
-    class: federated_learning.roles.trainer.MyEpochTrainer
+    class: federated_learning.roles.fedavg.trainer.MyEpochTrainer
     impl:
       model:
         loader:
