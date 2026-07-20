@@ -1,0 +1,97 @@
+name: Suggestion
+description: Propose an improvement, enhancement, or new feature
+title: "[Suggestion] "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing your suggestion. Please keep it focused and practical. A clear motivation and expected benefit will help maintainers evaluate it faster.
+
+  - type: checkboxes
+    id: precheck
+    attributes:
+      label: Checklist
+      description: Please check the following before submitting the issue
+      options:
+        - label: I searched existing issues and did not find a duplicate or very similar suggestion
+          required: true
+        - label: I removed sensitive information from the information provided below
+          required: true
+        - label: I explained the problem or need behind this suggestion
+          required: true
+        - label: I believe this suggestion is within the scope of RoleML
+          required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Briefly describe the idea
+      placeholder: e.g., Add builtin support for models X, Y, Z
+    validations:
+      required: true
+
+  - type: dropdown
+    id: changes
+    attributes:
+      label: Changes
+      description: What should be changed? (you may choose multiple)
+      options:
+        - Runtime core (`roleml/core/`)
+        - Standard library (`roleml/library/`)
+        - Messaging backends (`roleml/extensions/messaging/`)
+        - Extensions (`roleml/extensions/`)
+        - Tests (`tests/`)
+        - Others
+        - Not sure
+      multiple: true
+    validations:
+      required: true
+
+  - type: textarea
+    id: usage
+    attributes:
+      label: How to use
+      description: How should it work from the users' perspective?
+      placeholder: e.g., Users can directly import the models after installing RoleML and PyTorch, and use the training method provided
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Reason / Benefits
+      description: Why should this be added or changed? What problem does it solve?
+      placeholder: This would help users ... / It reduces ... / It improves ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical_approach
+    attributes:
+      label: Possible technical approach (optional)
+      description: If you have implementation ideas, describe them here
+    validations:
+      required: false
+
+  - type: dropdown
+    id: importance
+    attributes:
+      label: Importance
+      options:
+        - Critical for my use case
+        - Important
+        - Useful improvement
+        - Nice to have
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra_context
+    attributes:
+      label: Additional context
+      description: Mockups, examples, links, related issues, or anything else
+      placeholder: "Related issue: #123"
+    validations:
+      required: false
