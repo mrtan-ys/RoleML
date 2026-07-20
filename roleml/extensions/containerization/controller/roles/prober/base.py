@@ -76,6 +76,7 @@ class ResourceProber(Role, Runnable):
         self._docker_stats_generators: dict[str, Generator] = {}
         # 用于存储每个角色上一次采集的原始数据，用于计算CPU利用率
         self._pre_raw_stats: dict[str, dict] = {}
+        self._monitor_missing_logged = False
 
         self._stop_report_loop_event = threading.Event()
         self._stop_collect_loop = False
@@ -96,12 +97,20 @@ class ResourceProber(Role, Runnable):
                         args=None,
                         payloads={"role_stats": role_stats, "host_stats": host_stats},
                     )
+                    self._monitor_missing_logged = False
                 except ActorNotFoundError:
-                    self.logger.debug("Monitor not found, skipped stats update")
+                    self._log_monitor_missing_once()
                 except Exception as e:
                     self.logger.exception(e)
             else:
-                self.logger.debug("Monitor not found, skipped stats update")
+                # No monitor role is configured for this experiment.
+                pass
+
+    def _log_monitor_missing_once(self):
+        if self._monitor_missing_logged:
+            return
+        self.logger.debug("Monitor relationship exists but monitor actor was not found, skipped stats update")
+        self._monitor_missing_logged = True
 
     def _stat_collection_loop(self):
         while not self._stop_collect_loop:
@@ -155,19 +164,21 @@ class ResourceProber(Role, Runnable):
                 d_net_rx = stats.net_rx - net_rx_prev
                 d_net_tx = stats.net_tx - net_tx_prev
 
-                self._role_stats_buffer.append(
-                    RoleStatsRecord(
-                        time=stats.time.timestamp(),
-                        cpu_percent=stats.cpu_percent,
-                        memory_usage=stats.memory_usage,
-                        net_rx=stats.net_rx,
-                        bw_rx=d_net_rx / d_time * 8 / 1000,
-                        net_tx=stats.net_tx,
-                        bw_tx=d_net_tx / d_time * 8 / 1000,
-                        name=role,
-                        host=self.base.profile.name,
-                    )
+                bw_rx = d_net_rx / d_time * 8 / 1000 if d_time > 0 else 0.0
+                bw_tx = d_net_tx / d_time * 8 / 1000 if d_time > 0 else 0.0
+                record = RoleStatsRecord(
+                    time=stats.time.timestamp(),
+                    cpu_percent=stats.cpu_percent,
+                    memory_usage=stats.memory_usage,
+                    net_rx=stats.net_rx,
+                    bw_rx=bw_rx,
+                    net_tx=stats.net_tx,
+                    bw_tx=bw_tx,
+                    name=role,
+                    host=self.base.profile.name,
                 )
+                self._role_stats_buffer.append(record)
+                self._latest_role_stats[role] = record
 
             self._host_stats_buffer.append(
                 HostStatsRecord(
