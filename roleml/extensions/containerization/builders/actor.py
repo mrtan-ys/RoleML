@@ -204,7 +204,7 @@ class RemoteLogHandler(logging.Handler):
             tags = {
                 "instance_name": self._role_name,
             }
-            args = record.__dict__
+            args = record.__dict__.copy()
             args.pop("exc_info", None) # remove traceback object to avoid pickling error
             self._procedure_invoker.invoke_procedure(
                 self._ctx.profile.name,
