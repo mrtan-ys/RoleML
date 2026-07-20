@@ -4,7 +4,7 @@ import re
 import subprocess
 import threading
 import time
-from typing import TypedDict, Generator, TYPE_CHECKING
+from typing import Any, TypedDict, Generator, TYPE_CHECKING
 from typing_extensions import override
 
 import psutil
@@ -215,48 +215,100 @@ class ResourceProber(Role, Runnable):
                 continue
 
         refined_stats: dict[str, ContainerStats] = {}
+        previous_raw_stats: dict[str, dict] = {}
         for role_name, raw_stat in container_raw_statistics.items():
-            time_str = raw_stat["read"]
-            # the time string from docker stats api has more than 6 digits after the dot
-            # truncate it to 6 digits
-            time_str_truncated = re.sub(r'(\.\d{6})\d+', r'\1', time_str)
-            time = datetime.datetime.strptime(
-                time_str_truncated, "%Y-%m-%dT%H:%M:%S.%f%z"
-            )
-
             previous_role_raw_stats = self._pre_raw_stats.get(role_name)
-            if previous_role_raw_stats is None:
-                # 这里的precpu_stats是docker获取的上一秒的数据
-                pre_cpu = raw_stat["precpu_stats"]["cpu_usage"]["total_usage"]
-                pre_system = raw_stat["precpu_stats"]["system_cpu_usage"]
-            else:
-                # 使用自己保存的上一秒的数据
-                pre_cpu = previous_role_raw_stats["cpu_stats"]["cpu_usage"][
-                    "total_usage"
-                ]
-                pre_system = previous_role_raw_stats["cpu_stats"]["system_cpu_usage"]
+            stats, usable_as_previous = self._parse_container_stats(
+                role_name, raw_stat, previous_role_raw_stats
+            )
+            if usable_as_previous:
+                previous_raw_stats[role_name] = raw_stat
+            if stats is not None:
+                refined_stats[role_name] = stats
 
-            cpu_delta = raw_stat["cpu_stats"]["cpu_usage"]["total_usage"] - pre_cpu
-            system_delta = raw_stat["cpu_stats"]["system_cpu_usage"] - pre_system
-            cpu_percent = (
-                cpu_delta / system_delta * (raw_stat["cpu_stats"]["online_cpus"]) * 100
-            )  # percent，0-100*cpu核数
+        # 保存上一秒的数据，用于计算cpu使用率
+        self._pre_raw_stats = previous_raw_stats
+        return refined_stats
 
-            memory_usage = raw_stat["memory_stats"]["usage"]  # byte
-            net_rx = raw_stat["networks"]["eth0"]["rx_bytes"]  # byte
-            net_tx = raw_stat["networks"]["eth0"]["tx_bytes"]  # byte
+    def _parse_container_stats(
+        self,
+        role_name: str,
+        raw_stat: dict[str, Any],
+        previous_raw_stat: dict[str, Any] | None,
+    ) -> tuple[ContainerStats | None, bool]:
+        time = self._parse_docker_timestamp(raw_stat.get("read", ""))
+        if time is None:
+            return None, False
 
-            refined_stats[role_name] = ContainerStats(
+        cpu_stats = raw_stat.get("cpu_stats", {})
+        cpu_usage = cpu_stats.get("cpu_usage", {})
+        cpu_total = cpu_usage.get("total_usage")
+        system_cpu = cpu_stats.get("system_cpu_usage")
+        if cpu_total is None or system_cpu is None:
+            self.logger.debug(
+                f"Skipping stats for role {role_name}: incomplete cpu_stats"
+            )
+            return None, False
+
+        if previous_raw_stat is None:
+            precpu_stats = raw_stat.get("precpu_stats", {})
+            precpu_usage = precpu_stats.get("cpu_usage", {})
+            pre_cpu = precpu_usage.get("total_usage")
+            pre_system = precpu_stats.get("system_cpu_usage")
+        else:
+            previous_cpu_stats = previous_raw_stat.get("cpu_stats", {})
+            previous_cpu_usage = previous_cpu_stats.get("cpu_usage", {})
+            pre_cpu = previous_cpu_usage.get("total_usage")
+            pre_system = previous_cpu_stats.get("system_cpu_usage")
+
+        if pre_cpu is None or pre_system is None:
+            # Keep this complete sample as the next baseline, but do not emit a
+            # CPU percentage until a second sample is available.
+            return None, True
+
+        cpu_delta = cpu_total - pre_cpu
+        system_delta = system_cpu - pre_system
+        if cpu_delta < 0 or system_delta <= 0:
+            return None, True
+
+        online_cpus = cpu_stats.get("online_cpus")
+        if online_cpus is None:
+            online_cpus = len(cpu_usage.get("percpu_usage", []) or []) or 1
+        cpu_percent = cpu_delta / system_delta * online_cpus * 100
+
+        memory_usage = raw_stat.get("memory_stats", {}).get("usage")
+        if memory_usage is None:
+            self.logger.debug(
+                f"Skipping stats for role {role_name}: incomplete memory_stats"
+            )
+            return None, True
+
+        networks = raw_stat.get("networks") or {}
+        net_rx = sum(int(net.get("rx_bytes", 0)) for net in networks.values())
+        net_tx = sum(int(net.get("tx_bytes", 0)) for net in networks.values())
+
+        return (
+            ContainerStats(
                 time,
                 cpu_percent,
                 int(memory_usage),
                 int(net_rx),
                 int(net_tx),
-            )
+            ),
+            True,
+        )
 
-        # 保存上一秒的数据，用于计算cpu使用率
-        self._pre_raw_stats = container_raw_statistics
-        return refined_stats
+    def _parse_docker_timestamp(self, time_str: str) -> datetime.datetime | None:
+        if not time_str or time_str.startswith("0001-01-01T00:00:00"):
+            return None
+        # Docker may emit nanosecond precision and may use trailing Z.
+        time_str = time_str.replace("Z", "+00:00")
+        time_str = re.sub(r"(\.\d{6})\d+", r"\1", time_str)
+        try:
+            return datetime.datetime.fromisoformat(time_str)
+        except ValueError:
+            self.logger.debug(f"Skipping stats with invalid timestamp: {time_str}")
+            return None
 
     def _collect_host_stats(self):
         cpu_count = psutil.cpu_count()
