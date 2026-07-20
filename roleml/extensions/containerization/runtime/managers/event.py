@@ -21,7 +21,7 @@ class EventManager(DefaultEventManager, InterContainerMixin):
 
     @override
     def _is_local_instance(self, instance_name: RoleInstanceID) -> bool:
-        return instance_name.instance_name == "__this"
+        return instance_name.actor_name == "__this"
 
     @override
     def _on_role_status_starting(self, instance_name: str, old_status: Status):

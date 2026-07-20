@@ -17,7 +17,7 @@ class TaskManager(DefaultTaskManager, InterContainerMixin):
 
     @override
     def _is_local_instance(self, instance_name: RoleInstanceID) -> bool:
-        return instance_name.instance_name == "__this"
+        return instance_name.actor_name == "__this"
 
     @override
     def call_task(self, instance_name: str, target: RoleInstanceID, channel_name: str,
