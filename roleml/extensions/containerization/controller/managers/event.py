@@ -2,6 +2,7 @@ from typing_extensions import override
 
 from roleml.core.actor.default.managers.event import (
     EVENT_DISCONTINUING_UNIFIED_MESSAGE_CHANNEL,
+    EVENT_NAME_QUERY_CHANNEL,
     EVENT_SUBSCRIPTION_UNIFED_MESSAGING_CHANNEL,
     EVENT_UNIFIED_MESSAGING_CHANNEL,
     EVENT_UNSUBSCRIPTION_UNIFED_MESSAGING_CHANNEL,
@@ -20,6 +21,22 @@ class EventManager(DefaultEventManager, ContainerInvocationMixin):
     @override
     def initialize(self):
         super().initialize()
+
+    @override
+    def _on_receive_event_name_query_message(
+        self, sender: str, tags: Tags, _: Args, __: Payloads
+    ):
+        try:
+            source_instance_name: str = tags["instance_name"]
+        except KeyError:
+            raise AssertionError("incomplete event name query")
+
+        if not self._is_role_containerized(source_instance_name):
+            return super()._on_receive_event_name_query_message(sender, tags, _, __)
+
+        return self._invoke_container(
+            source_instance_name, EVENT_NAME_QUERY_CHANNEL, tags, _, __
+        )
 
     @override
     def _on_receive_event_discontinuing_message(self, sender: str, tags: Tags, _: Args, __: Payloads):
