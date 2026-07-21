@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sized
 from itertools import repeat
-from typing import Any, Iterable
+from typing import Any, Iterable, TypedDict
 
 from roleml.core.role.channels import Service, Task, Event
 from roleml.core.role.elements import Element
@@ -10,7 +10,7 @@ from roleml.library.workload.datasets.bases import IterableDataset
 from roleml.library.workload.models.bases import TrainableModel
 
 
-__all__ = ['EpochTrainer', 'TrainingPlanner', 'FixedTrainingPlanner']
+__all__ = ['EpochTrainer', 'TrainingPlanner', 'FixedTrainingPlanner', 'FullTrainingOutput']
 
 
 class TrainingPlanner(ABC):
@@ -26,6 +26,13 @@ class FixedTrainingPlanner(TrainingPlanner):
 
     def make_plan(self, num_steps: int, **hyperparams):
         return repeat(hyperparams, num_steps)
+
+
+class FullTrainingOutput(TypedDict):
+    update: Any
+    num_epochs: int
+    data_size: int
+    metrics: dict[str, Any]
 
 
 class EpochTrainer(BaseModelMaintainer):
@@ -55,13 +62,14 @@ class EpochTrainer(BaseModelMaintainer):
             return self.model.get().get_params()
     
     @Task(expand=True)
-    def train2(self, _, num_epochs: int = 1, **options) -> dict[str, Any]:
+    def train2(self, _, num_epochs: int = 1, **options) -> FullTrainingOutput:
         with self.lock:
             metrics = self.train_impl(num_epochs, **options)
             dataset = self.dataset.get()
             data_size = len(dataset) if isinstance(dataset, Sized) else 0
             return {
                 'update': self.model.get().get_params(),
+                'num_epochs': num_epochs,
                 'data_size': data_size,
                 'metrics': metrics
             }

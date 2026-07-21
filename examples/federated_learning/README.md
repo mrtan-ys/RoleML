@@ -4,7 +4,7 @@ This guide will lead you through the process of running the Federated Learning e
 
 ## Prepare the Environment
 
-RoleML is developed with Python 3.10. We expect the minimal version to run RoleML to be >= 3.9.
+RoleML requires Python 3.11 or higher. For this quickstart, we will use a lightweight model-dataset combination: LeNet-5 (tailored for RGB) & CIFAR-10.
 
 1. Install RoleML if you have not done it yet. For this example, we also need `torch`, `torchvision` and `numpy`. Please refer to [PyTorch's official website](https://pytorch.org/get-started/locally/) for the best commands to install them.
 
@@ -18,7 +18,7 @@ RoleML is developed with Python 3.10. We expect the minimal version to run RoleM
 
 The nodes to run FL can be started individually or in a batch. To conduct an FL experiment, we usually prefer the latter.
 
-The configuration files for the FL application is located at `<fl-root>/configs/dev`. Each of the `appConfig-*.yaml` files can be considered as a "recipe" with specific configurations for the roles, nodes, etc. Let's take `appConfig-fedavg-medium.yaml` as an example, where different parts of the configuration are included as links to the separate YAML files. (RoleML extends the YAML format to support file inclusion.)
+The configuration files for the FL application is located at `<fl-root>/configs/dev`. Each of the `appConfig-*.yaml` files can be considered as a "recipe" with specific configurations for the roles, nodes, etc. Let's take `appConfig-fedavg-medium-light.yaml` as an example, where different parts of the configuration are included as links to the separate YAML files. (RoleML extends the YAML format to support file inclusion.)
 
 The most common fields of an application config are:
 
@@ -49,7 +49,7 @@ We will run an FL experiment using the scripts in `<fl-root>/tests`:
 
 4. Open another terminal (B) and run **`python tests/conductor.py --config tests/conductor.yaml --workdir .`**. This will start an actor to run the Conductor role, which will then open a CLI for user control via the console.
 
-5. In the Conductor CLI (a prompt `FL>` should be visible), run the command **`configure configs/dev/appConfig-fedavg-medium.yaml`** to deploy the configuration file. Every deployment generates a separate reproducible configuration (named `run-*.yaml`).
+5. In the Conductor CLI (a prompt `FL>` should be visible), run the command **`configure configs/dev/appConfig-fedavg-medium-light.yaml`** to deploy the configuration file. Every deployment generates a separate reproducible configuration (named `run-*.yaml`).
 
 6. After the deployment is completed, you will see a prompt in the Conductor terminal. If the deployment gets stuck (check terminal A), simply kill (Ctrl+C) the scripts in both terminals and start the test again. (If possible, use Ctrl+D (EOF) instead for terminal B to stop the conductor gracefully.)
 

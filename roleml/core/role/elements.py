@@ -11,7 +11,7 @@ __all__ = ['Element', 'InitializationParams']
 IsInstanceArg = type[Any] | UnionType | tuple["IsInstanceArg", ...]
 
 InitializationParams = ParamSpec('InitializationParams', default=...)   # mainly for type hints
-MethodName = Literal["load", "initialize", "serialize", "unload", "get"]
+MethodName = Literal["load", "initialize", "checkpoint", "unload", "get"]
 
 
 @dataclass
@@ -47,7 +47,7 @@ class Element(Generic[T, InitializationParams]):
     def get(self) -> T:
         raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`
 
-    def serialize(self):
+    def checkpoint(self):
         raise RuntimeError("should be called in a role instance")   # note: actually not calling `Element`
 
     def unload(self):

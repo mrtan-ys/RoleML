@@ -29,7 +29,7 @@ class ElementSpecialPartAliasGettingTestCase(unittest.TestCase):
                                 'method': 'direct-use',
                                 'target': self.data,
                             },
-                            'serializer': {
+                            'checkpointer': {
                                 'method': 'json',
                                 'target': filename,
                             },

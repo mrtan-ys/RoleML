@@ -6,7 +6,7 @@ from typing_extensions import TypedDict, Required, TypeAlias
 from roleml.core.actor.base import BaseActor
 from roleml.core.actor.manager.bases.elements import ElementImplementation
 from roleml.core.builders.element import \
-    ElementImplementationSpec, loader_methods, serializer_methods, initializer_methods, unloader_methods
+    ElementImplementationSpec, loader_methods, checkpointer_methods, initializer_methods, unloader_methods
 from roleml.core.builders.helpers import RoleType
 from roleml.core.role.base import Role
 from roleml.shared.importing import as_class
@@ -45,20 +45,20 @@ class RoleElementPreset:
 
 
 def load_element_impl_spec(spec: ElementImplementationSpec) -> ElementImplementation:
-    loader, serializer, initializer, unloader = None, None, None, None
+    loader, checkpointer, initializer, unloader = None, None, None, None
     if loader_spec := spec.get('loader'):
         method = loader_spec.pop('method', 'default')
         loader = loader_methods[method](**loader_spec)
-    if serializer_spec := spec.get('serializer'):
-        if method := serializer_spec.pop('method', None):
-            serializer = serializer_methods[method](**serializer_spec)
+    if checkpointer_spec := spec.get('checkpointer'):
+        if method := checkpointer_spec.pop('method', None):
+            checkpointer = checkpointer_methods[method](**checkpointer_spec)
     if initializer_spec := spec.get('initializer'):
         if method := initializer_spec.pop('method', None):
             initializer = initializer_methods[method](**initializer_spec)
     if unloader_spec := spec.get('unloader'):
         if method := unloader_spec.pop('method', None):
             unloader = unloader_methods[method](**unloader_spec)
-    return ElementImplementation(loader, serializer, initializer, unloader, eager_load=spec.get('eager_load', False))
+    return ElementImplementation(loader, checkpointer, initializer, unloader, eager_load=spec.get('eager_load', False))
 
 
 class RoleBuilder(Generic[RoleType]):
