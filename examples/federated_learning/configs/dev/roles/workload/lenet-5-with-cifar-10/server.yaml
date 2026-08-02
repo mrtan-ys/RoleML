@@ -2,6 +2,7 @@ model:
   loader:
     method: factory
     target: federated_learning.workload.lenet_5.MyLeNet5RGBModel
+  eager_load: true
 dataset:
   loader:
     method: factory
@@ -15,3 +16,4 @@ dataset:
       converters: [roleml.library.workload.datasets.zoo.image.cifar_10.functions.transform_torch]
       sampler: sequential
       combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
+  eager_load: true

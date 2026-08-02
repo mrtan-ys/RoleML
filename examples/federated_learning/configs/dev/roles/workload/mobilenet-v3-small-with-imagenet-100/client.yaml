@@ -6,6 +6,7 @@ model:
       lr: 0.01
       device: cpu
       num_threads: 2
+  eager_load: true
 dataset:
   loader:
     method: factory
@@ -16,3 +17,4 @@ dataset:
       samples_per_region: 2000
       batch_size: 32
       transform: roleml.library.workload.datasets.zoo.image.imagenet_100.functions.default_transform
+  eager_load: true

@@ -2,6 +2,7 @@ model:
   loader:
     method: factory
     target: federated_learning.workload.mobilenet_v3.MyMobileNetV3SmallModel
+  eager_load: true
 dataset:
   loader:
     method: factory
@@ -11,3 +12,4 @@ dataset:
       samples: 5000
       batch_size: 32
       transform: roleml.library.workload.datasets.zoo.image.imagenet_100.functions.default_transform
+  eager_load: true

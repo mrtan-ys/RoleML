@@ -6,6 +6,7 @@ model:
       lr: 0.01
       device: cpu
       num_threads: 4
+  eager_load: true
 dataset:
   loader:
     method: factory
@@ -20,3 +21,4 @@ dataset:
       sampler: sequential
       batch_size: 32
       combiner: roleml.library.workload.datasets.zoo.image.cifar_10.functions.combine
+  eager_load: true
