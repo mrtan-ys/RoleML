@@ -1,0 +1,18 @@
+model:
+  loader:
+    method: factory
+    target: federated_learning.workload.mobilenet_v3.MyMobileNetV3SmallModel
+    args:
+      lr: 0.01
+      device: cpu
+      num_threads: 2
+dataset:
+  loader:
+    method: factory
+    target: federated_learning.workload.imagenet_100.MyImageNet100TrainDataset
+    args:
+      root: /home/roleml/datasets/imagenet-100
+      region: $c[0-999]
+      samples_per_region: 2000
+      batch_size: 32
+      transform: roleml.library.workload.datasets.zoo.image.imagenet_100.functions.default_transform

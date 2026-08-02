@@ -1,0 +1,3 @@
+<<: !include ./topo/default.yaml
+profiles: !include ./nodes/large.yaml profiles
+roles: !include ./roles/fednova/mobilenet-v3-small-with-imagenet-100.yaml

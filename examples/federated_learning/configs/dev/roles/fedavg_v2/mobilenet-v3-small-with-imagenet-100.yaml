@@ -1,0 +1,22 @@
+# affects batch nodes (started on current machine)
+client.*:
+  trainer:
+    class: federated_learning.roles.fedavg.trainer.MyEpochTrainer
+    impl: !include ../workload/mobilenet-v3-small-with-imagenet-100/client.yaml
+server:
+  aggregator:
+    class: federated_learning.roles.fedavg.v2.aggregator.WeightedCollectiveAggregator
+    impl:
+      merger:
+        initializer:
+          method: factory
+          target: roleml.library.workload.util.collections.merger.torch.WeightedTorchStateDictAverager
+  coordinator:
+    class: federated_learning.roles.fedavg.coordinator.FLCoordinator
+    options:
+      deliver_final_model: true
+    impl: !include ../workload/mobilenet-v3-small-with-imagenet-100/server.yaml
+  client-selector:
+    class: federated_learning.roles.client_selector.ClientSelector
+  configurator:
+    class: federated_learning.roles.fedavg.configurator.ClientConfigurator
