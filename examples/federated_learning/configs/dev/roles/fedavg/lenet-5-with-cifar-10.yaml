@@ -13,6 +13,8 @@ server:
           target: roleml.library.workload.util.collections.merger.torch.TorchStateDictAverager
   coordinator:
     class: federated_learning.roles.fedavg.coordinator.FLCoordinator
+    options:
+      deliver_final_model: true
     impl: !include ../workload/lenet-5-with-cifar-10/server.yaml
   client-selector:
     class: federated_learning.roles.client_selector.ClientSelector
