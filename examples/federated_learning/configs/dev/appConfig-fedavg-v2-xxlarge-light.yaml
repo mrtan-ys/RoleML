@@ -1,0 +1,3 @@
+<<: !include ./topo/default.yaml
+profiles: !include ./nodes/xxlarge.yaml profiles
+roles: !include ./roles/fedavg_v2/lenet-5-with-cifar-10.yaml

@@ -1,0 +1,204 @@
+# xxlarge setup - 100 client nodes
+profiles:
+  - name: server
+    address: 127.0.0.1:5000
+  - name: client1
+    address: 127.0.0.1:5001
+  - name: client2
+    address: 127.0.0.1:5002
+  - name: client3
+    address: 127.0.0.1:5003
+  - name: client4
+    address: 127.0.0.1:5004
+  - name: client5
+    address: 127.0.0.1:5005
+  - name: client6
+    address: 127.0.0.1:5006
+  - name: client7
+    address: 127.0.0.1:5007
+  - name: client8
+    address: 127.0.0.1:5008
+  - name: client9
+    address: 127.0.0.1:5009
+  - name: client10
+    address: 127.0.0.1:5010
+  - name: client11
+    address: 127.0.0.1:5011
+  - name: client12
+    address: 127.0.0.1:5012
+  - name: client13
+    address: 127.0.0.1:5013
+  - name: client14
+    address: 127.0.0.1:5014
+  - name: client15
+    address: 127.0.0.1:5015
+  - name: client16
+    address: 127.0.0.1:5016
+  - name: client17
+    address: 127.0.0.1:5017
+  - name: client18
+    address: 127.0.0.1:5018
+  - name: client19
+    address: 127.0.0.1:5019
+  - name: client20
+    address: 127.0.0.1:5020
+  - name: client21
+    address: 127.0.0.1:5021
+  - name: client22
+    address: 127.0.0.1:5022
+  - name: client23
+    address: 127.0.0.1:5023
+  - name: client24
+    address: 127.0.0.1:5024
+  - name: client25
+    address: 127.0.0.1:5025
+  - name: client26
+    address: 127.0.0.1:5026
+  - name: client27
+    address: 127.0.0.1:5027
+  - name: client28
+    address: 127.0.0.1:5028
+  - name: client29
+    address: 127.0.0.1:5029
+  - name: client30
+    address: 127.0.0.1:5030
+  - name: client31
+    address: 127.0.0.1:5031
+  - name: client32
+    address: 127.0.0.1:5032
+  - name: client33
+    address: 127.0.0.1:5033
+  - name: client34
+    address: 127.0.0.1:5034
+  - name: client35
+    address: 127.0.0.1:5035
+  - name: client36
+    address: 127.0.0.1:5036
+  - name: client37
+    address: 127.0.0.1:5037
+  - name: client38
+    address: 127.0.0.1:5038
+  - name: client39
+    address: 127.0.0.1:5039
+  - name: client40
+    address: 127.0.0.1:5040
+  - name: client41
+    address: 127.0.0.1:5041
+  - name: client42
+    address: 127.0.0.1:5042
+  - name: client43
+    address: 127.0.0.1:5043
+  - name: client44
+    address: 127.0.0.1:5044
+  - name: client45
+    address: 127.0.0.1:5045
+  - name: client46
+    address: 127.0.0.1:5046
+  - name: client47
+    address: 127.0.0.1:5047
+  - name: client48
+    address: 127.0.0.1:5048
+  - name: client49
+    address: 127.0.0.1:5049
+  - name: client50
+    address: 127.0.0.1:5050
+  - name: client51
+    address: 127.0.0.1:5051
+  - name: client52
+    address: 127.0.0.1:5052
+  - name: client53
+    address: 127.0.0.1:5053
+  - name: client54
+    address: 127.0.0.1:5054
+  - name: client55
+    address: 127.0.0.1:5055
+  - name: client56
+    address: 127.0.0.1:5056
+  - name: client57
+    address: 127.0.0.1:5057
+  - name: client58
+    address: 127.0.0.1:5058
+  - name: client59
+    address: 127.0.0.1:5059
+  - name: client60
+    address: 127.0.0.1:5060
+  - name: client61
+    address: 127.0.0.1:5061
+  - name: client62
+    address: 127.0.0.1:5062
+  - name: client63
+    address: 127.0.0.1:5063
+  - name: client64
+    address: 127.0.0.1:5064
+  - name: client65
+    address: 127.0.0.1:5065
+  - name: client66
+    address: 127.0.0.1:5066
+  - name: client67
+    address: 127.0.0.1:5067
+  - name: client68
+    address: 127.0.0.1:5068
+  - name: client69
+    address: 127.0.0.1:5069
+  - name: client70
+    address: 127.0.0.1:5070
+  - name: client71
+    address: 127.0.0.1:5071
+  - name: client72
+    address: 127.0.0.1:5072
+  - name: client73
+    address: 127.0.0.1:5073
+  - name: client74
+    address: 127.0.0.1:5074
+  - name: client75
+    address: 127.0.0.1:5075
+  - name: client76
+    address: 127.0.0.1:5076
+  - name: client77
+    address: 127.0.0.1:5077
+  - name: client78
+    address: 127.0.0.1:5078
+  - name: client79
+    address: 127.0.0.1:5079
+  - name: client80
+    address: 127.0.0.1:5080
+  - name: client81
+    address: 127.0.0.1:5081
+  - name: client82
+    address: 127.0.0.1:5082
+  - name: client83
+    address: 127.0.0.1:5083
+  - name: client84
+    address: 127.0.0.1:5084
+  - name: client85
+    address: 127.0.0.1:5085
+  - name: client86
+    address: 127.0.0.1:5086
+  - name: client87
+    address: 127.0.0.1:5087
+  - name: client88
+    address: 127.0.0.1:5088
+  - name: client89
+    address: 127.0.0.1:5089
+  - name: client90
+    address: 127.0.0.1:5090
+  - name: client91
+    address: 127.0.0.1:5091
+  - name: client92
+    address: 127.0.0.1:5092
+  - name: client93
+    address: 127.0.0.1:5093
+  - name: client94
+    address: 127.0.0.1:5094
+  - name: client95
+    address: 127.0.0.1:5095
+  - name: client96
+    address: 127.0.0.1:5096
+  - name: client97
+    address: 127.0.0.1:5097
+  - name: client98
+    address: 127.0.0.1:5098
+  - name: client99
+    address: 127.0.0.1:5099
+  - name: client100
+    address: 127.0.0.1:5100

@@ -1,3 +1,4 @@
+# small setup - 6 client nodes
 profiles:
   - name: server
     address: 127.0.0.1:5000

@@ -1,4 +1,4 @@
-# medium setup - 10 client nodes
+# large setup - 20 client nodes
 profiles:
   - name: server
     address: 127.0.0.1:5000
@@ -22,3 +22,23 @@ profiles:
     address: 127.0.0.1:5009
   - name: client10
     address: 127.0.0.1:5010
+  - name: client11
+    address: 127.0.0.1:5011
+  - name: client12
+    address: 127.0.0.1:5012
+  - name: client13
+    address: 127.0.0.1:5013
+  - name: client14
+    address: 127.0.0.1:5014
+  - name: client15
+    address: 127.0.0.1:5015
+  - name: client16
+    address: 127.0.0.1:5016
+  - name: client17
+    address: 127.0.0.1:5017
+  - name: client18
+    address: 127.0.0.1:5018
+  - name: client19
+    address: 127.0.0.1:5019
+  - name: client20
+    address: 127.0.0.1:5020
