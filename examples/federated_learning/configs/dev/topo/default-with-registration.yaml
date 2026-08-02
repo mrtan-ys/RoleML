@@ -6,6 +6,11 @@ connection_rules:
 relationship_rules:
   server:
     manager: server/initiator   # allows updating relationships
+    # the following 4 lines may be omitted when not using containerization
+    client-selector: server
+    aggregator: server
+    configurator: server
+    coordinator: server
   client.*:
     server: server/initiator
   conductor:

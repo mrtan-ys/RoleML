@@ -5,6 +5,11 @@ connection_rules:
 relationship_rules:
   server:
     trainer: client.*/trainer
+    # the following 4 lines may be omitted when not using containerization
+    client-selector: server
+    aggregator: server
+    configurator: server
+    coordinator: server
   conductor:
     coordinator: server   # equivalent to server/coordinator
 
