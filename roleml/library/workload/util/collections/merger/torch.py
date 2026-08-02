@@ -35,11 +35,11 @@ class WeightedTorchStateDictAverager(WeightedMerger[Key, dict[str, Any], dict[st
     def __init__(self, weights: dict[Key, Union[int, float]]):
         super().__init__(weights)
         self._data = {}
-        self._accepted_weights = 0
+        self._accepted_weights = 0.0
 
     @override
     def _push(self, key: Key, value: dict[str, Any]):
-        weight = self._weights[key]
+        weight = float(self._weights[key])
         if not self._data:
             for k in value:
                 self._data[k] = value[k] * weight
