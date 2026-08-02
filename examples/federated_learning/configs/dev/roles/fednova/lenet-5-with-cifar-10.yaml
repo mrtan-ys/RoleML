@@ -18,3 +18,5 @@ server:
     class: federated_learning.roles.client_selector.ClientSelector
   configurator:
     class: federated_learning.roles.fednova.configurator.ClientConfigurator
+    options:
+      base_epochs_map: !include base_epochs_map.yaml
